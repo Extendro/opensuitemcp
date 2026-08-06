@@ -240,7 +240,7 @@ export function McpAppHost({
 
         detachLinks = attachLinkInterceptor(iframe);
 
-        bridge = new AppBridge(
+        const appBridge = new AppBridge(
           null,
           { name: "OpenSuiteMCP", version: "1.0.0" },
           {
@@ -262,8 +262,9 @@ export function McpAppHost({
             },
           },
         );
+        bridge = appBridge;
 
-        bridge.oncalltool = async (params) => {
+        appBridge.oncalltool = async (params) => {
           console.log("[MCP App] View requested tools/call:", params.name);
           const response = await fetch("/api/netsuite/mcp-call", {
             method: "POST",
@@ -281,7 +282,7 @@ export function McpAppHost({
           return payload;
         };
 
-        bridge.onreadresource = async (params) => {
+        appBridge.onreadresource = async (params) => {
           const response = await fetch("/api/netsuite/mcp-resource", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -303,7 +304,7 @@ export function McpAppHost({
           };
         };
 
-        bridge.onmessage = async (params) => {
+        appBridge.onmessage = async (params) => {
           const text = extractUserText(params);
           if (text && onUserMessage) {
             onUserMessage(text);
@@ -322,13 +323,13 @@ export function McpAppHost({
           return {};
         };
 
-        bridge.onopenlink = async (params) => {
+        appBridge.onopenlink = async (params) => {
           window.open(params.url, "_blank", "noopener,noreferrer");
           return {};
         };
 
         // Required: Prompt Library awaits this after applying tool results.
-        bridge.onupdatemodelcontext = async (params) => {
+        appBridge.onupdatemodelcontext = async (params) => {
           console.log(
             "[MCP App] updateModelContext:",
             params.content
@@ -340,24 +341,24 @@ export function McpAppHost({
           return {};
         };
 
-        bridge.onsizechange = async ({ height }) => {
+        appBridge.onsizechange = async ({ height }) => {
           if (typeof height === "number" && height > 200) {
             setIframeHeight(Math.min(Math.max(height, 320), 780));
           }
         };
 
-        bridge.onloggingmessage = (params) => {
+        appBridge.onloggingmessage = (params) => {
           console.log("[MCP App log]", params);
         };
 
         const initialized = new Promise<void>((resolve) => {
-          bridge.oninitialized = () => {
+          appBridge.oninitialized = () => {
             console.log("[MCP App] View initialized");
             resolve();
           };
         });
 
-        await bridge.connect(
+        await appBridge.connect(
           new PostMessageTransport(iframe.contentWindow, iframe.contentWindow),
         );
 
