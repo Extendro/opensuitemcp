@@ -549,8 +549,7 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
       return;
     }
     const accounts = settings.netsuiteAccounts ?? [];
-    const activeId =
-      settings.netsuiteAccountId ?? accounts[0]?.accountId ?? "";
+    const activeId = settings.netsuiteAccountId ?? accounts[0]?.accountId ?? "";
     if (!activeId && accounts.length === 0) {
       return;
     }
@@ -565,12 +564,7 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     if (!netsuiteAccountId && activeId) {
       setNetsuiteAccountId(activeId);
     }
-  }, [
-    active,
-    settings,
-    netsuiteAccountId,
-    netsuiteAccounts.length,
-  ]);
+  }, [active, settings, netsuiteAccountId, netsuiteAccounts.length]);
 
   const accountOptions =
     netsuiteAccounts.length > 0
@@ -774,6 +768,8 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     }
   };
 
+  // Probe whenever the active account changes while Settings is active.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: account selection drives probe; probeNetSuiteDcr is recreated each render
   useEffect(() => {
     if (!active || isGuest || !selectedAccountId) {
       // Invalidate in-flight probes so a late response can't show a miss card
@@ -788,11 +784,12 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     }
 
     void probeNetSuiteDcr(selectedAccountId);
-    // Probe whenever the active account changes while Settings is active.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: account selection drives probe
   }, [active, isGuest, selectedAccountId]);
 
-  const persistAccounts = async (accounts: NetSuiteAccountEntry[], activeId: string) => {
+  const persistAccounts = async (
+    accounts: NetSuiteAccountEntry[],
+    activeId: string,
+  ) => {
     const response = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1062,9 +1059,7 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
               ) : (
                 <Select
                   key={`provider-${aiProvider}`}
-                  onValueChange={(
-                    value: "google" | "anthropic" | "openai",
-                  ) => {
+                  onValueChange={(value: "google" | "anthropic" | "openai") => {
                     setAiProvider(value);
                   }}
                   value={aiProvider}

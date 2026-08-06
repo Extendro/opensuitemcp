@@ -7,11 +7,11 @@
  * `between [DATE] and [DATE]` can take two different values.
  */
 
-const BRACKET_TOKEN_RE = /\[([^\[\]]+)\]/g;
+const BRACKET_TOKEN_RE = /\[([^[\]]+)\]/g;
 
 /** Identifier / short phrase shapes used in Companion templates. */
 const TEMPLATE_INNER_RE =
-  /^[A-Za-z0-9_/#][A-Za-z0-9_/# '\-]{0,38}[A-Za-z0-9_/#']?$/;
+  /^[A-Za-z0-9_/#][A-Za-z0-9_/# '-]{0,38}[A-Za-z0-9_/#']?$/;
 
 export type PromptPlaceholderField = {
   /** Stable form key, e.g. `[DATE]#0` */
@@ -119,7 +119,9 @@ export function humanizePlaceholderToken(token: string): string {
 }
 
 /** Label for a field, e.g. `Date (1)` when the same token repeats. */
-export function labelForPlaceholderField(field: PromptPlaceholderField): string {
+export function labelForPlaceholderField(
+  field: PromptPlaceholderField,
+): string {
   const base = humanizePlaceholderToken(field.token);
   if (field.totalOfToken <= 1) {
     return base;

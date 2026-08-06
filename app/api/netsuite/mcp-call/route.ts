@@ -57,8 +57,7 @@ export async function POST(request: Request) {
             return { index, type: typeof item };
           }
           const block = item as Record<string, unknown>;
-          const text =
-            typeof block.text === "string" ? block.text : undefined;
+          const text = typeof block.text === "string" ? block.text : undefined;
           let parsedPreview: unknown;
           if (text) {
             try {
@@ -96,10 +95,7 @@ export async function POST(request: Request) {
         JSON.stringify(shape, null, 2),
       );
     } else {
-      console.log(
-        `[MCP Call API] ${parsed.name} result type:`,
-        typeof result,
-      );
+      console.log(`[MCP Call API] ${parsed.name} result type:`, typeof result);
     }
 
     // Preserve NetSuite CallToolResult as-is. MCP Apps like Prompt Library
@@ -113,9 +109,12 @@ export async function POST(request: Request) {
     }
 
     // NetSuite CustomTool-style objects sometimes stringify arrays
-    let structured =
+    const structured =
       result && typeof result === "object"
-        ? ({ ...(result as Record<string, unknown>) } as Record<string, unknown>)
+        ? ({ ...(result as Record<string, unknown>) } as Record<
+            string,
+            unknown
+          >)
         : undefined;
     if (structured) {
       for (const key of Object.keys(structured)) {
@@ -158,8 +157,7 @@ export async function POST(request: Request) {
         content: [
           {
             type: "text",
-            text:
-              error instanceof Error ? error.message : "Tool call failed",
+            text: error instanceof Error ? error.message : "Tool call failed",
           },
         ],
         isError: true,

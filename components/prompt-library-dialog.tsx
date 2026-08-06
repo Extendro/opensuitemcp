@@ -8,7 +8,7 @@ import {
   Loader2,
   Search,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +61,10 @@ function parsePromptLibraryResult(result: unknown): {
 
   const text = record.content?.find((block) => block.type === "text")?.text;
   if (!text) {
-    return { prompts: [], error: "No prompt payload was received from NetSuite." };
+    return {
+      prompts: [],
+      error: "No prompt payload was received from NetSuite.",
+    };
   }
 
   try {
@@ -133,7 +136,9 @@ export function PromptLibraryPanel({
   onSelectPrompt,
   onRequestClose,
 }: PromptLibraryPanelProps) {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [error, setError] = useState<string | null>(null);
   const [prompts, setPrompts] = useState<PromptRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,6 +153,8 @@ export function PromptLibraryPanel({
     Record<string, string>
   >({});
 
+  const searchInputId = useId();
+
   const resetFillState = () => {
     setStep("browse");
     setSelectedPrompt(null);
@@ -159,6 +166,8 @@ export function PromptLibraryPanel({
     [toolInput],
   );
 
+  // resetFillState only clears local UI state; including it would re-fetch every render
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch key is active/toolName/toolInputKey
   useEffect(() => {
     if (!active) {
       setStatus("loading");
@@ -228,19 +237,25 @@ export function PromptLibraryPanel({
 
   const categories = useMemo(
     () =>
-      [...new Set(prompts.map((prompt) => prompt.category).filter(Boolean))].sort(),
+      [
+        ...new Set(prompts.map((prompt) => prompt.category).filter(Boolean)),
+      ].sort(),
     [prompts],
   );
   const industries = useMemo(
     () =>
       [
-        ...new Set(prompts.flatMap((prompt) => prompt.industries).filter(Boolean)),
+        ...new Set(
+          prompts.flatMap((prompt) => prompt.industries).filter(Boolean),
+        ),
       ].sort(),
     [prompts],
   );
   const roles = useMemo(
     () =>
-      [...new Set(prompts.flatMap((prompt) => prompt.roles).filter(Boolean))].sort(),
+      [
+        ...new Set(prompts.flatMap((prompt) => prompt.roles).filter(Boolean)),
+      ].sort(),
     [prompts],
   );
 
@@ -274,9 +289,7 @@ export function PromptLibraryPanel({
 
   const selectedPlaceholders = useMemo(
     () =>
-      selectedPrompt
-        ? extractPromptPlaceholders(selectedPrompt.prompt)
-        : [],
+      selectedPrompt ? extractPromptPlaceholders(selectedPrompt.prompt) : [],
     [selectedPrompt],
   );
 
@@ -333,9 +346,7 @@ export function PromptLibraryPanel({
         <div className="min-w-0 space-y-1">
           <p className="flex items-center gap-1.5 font-medium text-sm">
             <BookOpen className="size-3.5 text-muted-foreground" />
-            {step === "fill" && selectedPrompt
-              ? selectedPrompt.name
-              : title}
+            {step === "fill" && selectedPrompt ? selectedPrompt.name : title}
           </p>
           <p className="text-muted-foreground text-xs leading-relaxed">
             {step === "fill"
@@ -378,81 +389,88 @@ export function PromptLibraryPanel({
 
       {status === "ready" && step === "browse" ? (
         <div className="flex min-h-0 flex-1 flex-col">
-            <div className="shrink-0 space-y-2.5 border-border/60 border-b px-4 py-3 sm:px-5">
-              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-                  <Label className="text-xs text-muted-foreground" htmlFor="prompt-search">
-                    Search
-                  </Label>
+          <div className="shrink-0 space-y-2.5 border-border/60 border-b px-4 py-3 sm:px-5">
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                <Label
+                  className="text-xs text-muted-foreground"
+                  htmlFor={searchInputId}
+                >
+                  Search
+                </Label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-                    <Input
-                      className="h-9 pl-8"
-                      id="prompt-search"
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search title, role, industry, or prompt"
-                      value={searchQuery}
-                    />
+                  <Input
+                    className="h-9 pl-8"
+                    id={searchInputId}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search title, role, industry, or prompt"
+                    value={searchQuery}
+                  />
                 </div>
               </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Category</Label>
-                  <Select onValueChange={setCategory} value={category}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Industry</Label>
-                  <Select onValueChange={setIndustry} value={industry}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All Industries" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Industries</SelectItem>
-                      {industries.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Role</Label>
-                  <Select onValueChange={setRole} value={role}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="All Roles" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      {roles.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Category
+                </Label>
+                <Select onValueChange={setCategory} value={category}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              <p className="text-muted-foreground text-xs">
-                {filtered.length} showing
-                <span className="text-muted-foreground/70">
-                  {" "}
-                  · {prompts.length} total
-                </span>
-              </p>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Industry
+                </Label>
+                <Select onValueChange={setIndustry} value={industry}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All Industries" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Industries</SelectItem>
+                    {industries.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Role</Label>
+                <Select onValueChange={setRole} value={role}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    {roles.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            <p className="text-muted-foreground text-xs">
+              {filtered.length} showing
+              <span className="text-muted-foreground/70">
+                {" "}
+                · {prompts.length} total
+              </span>
+            </p>
+          </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {filtered.length === 0 ? (

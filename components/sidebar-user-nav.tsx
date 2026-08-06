@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "next-auth";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect } from "react";
+import { useAppPortal } from "@/components/portal/context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { guestRegex } from "@/lib/constants";
-import { useAppPortal } from "@/components/portal/context";
 import { LoaderIcon, SignInIcon } from "./icons";
 import { toast } from "./toast";
 
@@ -119,10 +119,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             data-testid="user-nav-menu"
             side="top"
           >
-            <DropdownMenuLabel
-              className="font-normal"
-              data-testid="user-email"
-            >
+            <DropdownMenuLabel className="font-normal" data-testid="user-email">
               <div className="flex flex-col gap-0.5">
                 <span className="text-muted-foreground text-xs">
                   Signed in as

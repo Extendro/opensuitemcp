@@ -73,9 +73,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               onClick={() =>
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
               }
-              tooltip={
-                resolvedTheme === "light" ? "Dark mode" : "Light mode"
-              }
+              tooltip={resolvedTheme === "light" ? "Dark mode" : "Light mode"}
             >
               <SunMoon />
               <span>Theme</span>

@@ -459,7 +459,11 @@ export function Chat({
           isReadonly={isReadonly}
           messages={messages}
           onMcpAppUserMessage={(text) => {
-            if (maxIterationsReached || status === "streaming" || status === "submitted") {
+            if (
+              maxIterationsReached ||
+              status === "streaming" ||
+              status === "submitted"
+            ) {
               setInput(text);
               return;
             }

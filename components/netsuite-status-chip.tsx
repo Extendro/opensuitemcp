@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { useAppPortal } from "@/components/portal/context";
 import {
   Tooltip,
   TooltipContent,
@@ -9,7 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import type { NetSuiteAccountEntry } from "@/lib/netsuite/accounts";
 import { cn } from "@/lib/utils";
-import { useAppPortal } from "@/components/portal/context";
 
 type NetSuiteStatusResponse = {
   connected: boolean;
@@ -40,11 +40,7 @@ function resolveAccountLabel(status: NetSuiteStatusResponse): string {
   return match?.label?.trim() || activeId;
 }
 
-export function NetSuiteStatusChip({
-  className,
-}: {
-  className?: string;
-}) {
+export function NetSuiteStatusChip({ className }: { className?: string }) {
   const { openPortal } = useAppPortal();
   const { data, isLoading, error } = useSWR(
     "netsuite-status",

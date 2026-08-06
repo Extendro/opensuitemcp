@@ -2,6 +2,7 @@
 import equal from "fast-deep-equal";
 import { motion } from "framer-motion";
 import { memo, useEffect, useState } from "react";
+import { useAppPortal } from "@/components/portal/context";
 import { useSidebar } from "@/components/ui/sidebar";
 import type { GetCurrentConfigToolResult } from "@/lib/ai/tools/get-current-config";
 import type { ReadWebpageToolResult } from "@/lib/ai/tools/read-webpage";
@@ -9,11 +10,7 @@ import type { WebSearchToolResult } from "@/lib/ai/web-search";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
-import { useAppPortal } from "@/components/portal/context";
-import {
-  type McpAppLaunch,
-  McpAppHost,
-} from "./mcp-app-host";
+import { McpAppHost, type McpAppLaunch } from "./mcp-app-host";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageContent } from "./message-elements/message";
@@ -97,16 +94,17 @@ const PurePreviewMessage = ({
         state?: string;
         output?: unknown;
       };
+      const toolCallId = toolPart.toolCallId;
       if (
         toolPart.state !== "output-available" ||
-        !toolPart.toolCallId ||
-        autoOpenedToolIds.has(toolPart.toolCallId)
+        !toolCallId ||
+        autoOpenedToolIds.has(toolCallId)
       ) {
         continue;
       }
       const launch = extractMcpAppLaunch(toolPart.output);
       if (launch) {
-        setAutoOpenedToolIds((prev) => new Set(prev).add(toolPart.toolCallId!));
+        setAutoOpenedToolIds((prev) => new Set(prev).add(toolCallId));
         if (launch.toolName === "ns_prompt_library_app") {
           openPortal("prompts");
         } else {

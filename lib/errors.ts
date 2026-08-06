@@ -45,9 +45,7 @@ export class ChatSDKError extends Error {
     this.cause = cause;
     this.surface = surface as Surface;
     this.message =
-      type === "rate_limit" && cause
-        ? cause
-        : getMessageByErrorCode(errorCode);
+      type === "rate_limit" && cause ? cause : getMessageByErrorCode(errorCode);
     this.statusCode = getStatusCodeByType(this.type);
   }
 

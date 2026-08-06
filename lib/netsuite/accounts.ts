@@ -12,9 +12,7 @@ export function normalizeNetSuiteAccountId(accountId: string): string {
 
 export function getNetSuiteRedirectUri(): string {
   const base =
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    "http://localhost:3000";
+    process.env.AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   return `${base.replace(/\/$/, "")}/api/netsuite/callback`;
 }
 
@@ -63,7 +61,8 @@ export function resolveNetSuiteAccounts(settings: {
         .filter((entry) => entry?.accountId?.trim())
         .map((entry) => ({
           accountId: normalizeNetSuiteAccountId(entry.accountId),
-          label: entry.label?.trim() || normalizeNetSuiteAccountId(entry.accountId),
+          label:
+            entry.label?.trim() || normalizeNetSuiteAccountId(entry.accountId),
           clientId: entry.clientId?.trim() || null,
         }))
     : [];

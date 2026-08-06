@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export type SkillAuthor = "Oracle NetSuite" | "You" | "OpenSuiteMCP";
@@ -85,7 +85,8 @@ const ORACLE_LABELS: Record<string, { name: string; description: string }> = {
   },
   "netsuite-sdf-safe-guide": {
     name: "SDF Safe Guide",
-    description: "Safe SuiteApp development, governance, and performance practices.",
+    description:
+      "Safe SuiteApp development, governance, and performance practices.",
   },
   "netsuite-suitescript-learning": {
     name: "SuiteScript Learning",
@@ -133,7 +134,12 @@ function readOracleSkillBody(skillId: string): string | null {
 
 /** Read a vendored Oracle skill body for UI preview / injection. */
 export function getOracleSkillContent(skillId: string): string | null {
-  if (!skillId || skillId.includes("..") || skillId.includes("/") || skillId.includes("\\")) {
+  if (
+    !skillId ||
+    skillId.includes("..") ||
+    skillId.includes("/") ||
+    skillId.includes("\\")
+  ) {
     return null;
   }
   return readOracleSkillBody(skillId);
@@ -188,7 +194,9 @@ export function normalizeUserSkillSettings(
     const value = raw as Partial<UserSkillSettings>;
     settings = {
       enabledSkillIds: Array.isArray(value.enabledSkillIds)
-        ? value.enabledSkillIds.filter((id): id is string => typeof id === "string")
+        ? value.enabledSkillIds.filter(
+            (id): id is string => typeof id === "string",
+          )
         : [],
       customSkills: Array.isArray(value.customSkills)
         ? value.customSkills

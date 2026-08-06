@@ -32,7 +32,11 @@ const settingsSchema = z.object({
   aiProvider: aiProviderSchema.optional().nullable(),
   netsuiteAccountId: z.string().max(64).optional().nullable(),
   netsuiteClientId: z.string().max(128).optional().nullable(),
-  netsuiteAccounts: z.array(netsuiteAccountSchema).max(20).optional().nullable(),
+  netsuiteAccounts: z
+    .array(netsuiteAccountSchema)
+    .max(20)
+    .optional()
+    .nullable(),
   timezone: z.string().max(64).optional().nullable(),
   searchDomainIds: z.array(z.string()).max(16).optional().nullable(),
   maxIterations: z
@@ -376,9 +380,7 @@ export async function POST(request: Request) {
       validated.customSkills !== undefined
         ? normalizeUserSkillSettings({
             enabledSkillIds:
-              validated.enabledSkillIds ??
-              existing?.enabledSkillIds ??
-              [],
+              validated.enabledSkillIds ?? existing?.enabledSkillIds ?? [],
             customSkills: validated.customSkills ?? [],
           }).customSkills
         : undefined;
@@ -387,10 +389,7 @@ export async function POST(request: Request) {
       validated.enabledSkillIds !== undefined
         ? normalizeUserSkillSettings({
             enabledSkillIds: validated.enabledSkillIds ?? [],
-            customSkills:
-              nextCustomSkills ??
-              existing?.customSkills ??
-              [],
+            customSkills: nextCustomSkills ?? existing?.customSkills ?? [],
           }).enabledSkillIds
         : undefined;
 

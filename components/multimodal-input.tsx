@@ -2,6 +2,7 @@
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { Trigger } from "@radix-ui/react-select";
+import { BookOpen, Sparkles } from "lucide-react";
 import {
   type Dispatch,
   memo,
@@ -16,13 +17,13 @@ import {
 import useSWR from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { saveChatModelAsCookie } from "@/app/(chat)/actions";
+import { useAppPortal } from "@/components/portal/context";
 import { SelectItem } from "@/components/ui/select";
 import { chatModels } from "@/lib/ai/models";
 import { myProvider } from "@/lib/ai/providers";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
-import { BookOpen, Sparkles } from "lucide-react";
 import {
   ArrowUpIcon,
   BrainIcon,
@@ -30,7 +31,6 @@ import {
   StopIcon,
   StopwatchFastIcon,
 } from "./icons";
-import { useAppPortal } from "@/components/portal/context";
 import { Context } from "./message-elements/context";
 import {
   PromptInput,
@@ -354,7 +354,7 @@ async function fetchSettings() {
     aiProvider: (data.aiProvider || "google") as
       | "google"
       | "anthropic"
-      | "openai"
+      | "openai",
   };
 }
 

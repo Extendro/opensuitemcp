@@ -16,11 +16,7 @@ export function getPublicAppOrigin(request?: Request): string {
       request.headers.get("x-forwarded-proto") ||
       (host?.includes("localhost") ? "http" : "https");
 
-    if (
-      host &&
-      !host.startsWith("0.0.0.0") &&
-      !host.startsWith("[::]")
-    ) {
+    if (host && !host.startsWith("0.0.0.0") && !host.startsWith("[::]")) {
       return `${proto}://${host}`.replace(/\/$/, "");
     }
 

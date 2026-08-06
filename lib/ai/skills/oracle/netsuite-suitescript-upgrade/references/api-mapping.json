@@ -3,32 +3,110 @@
   "source": "Oracle SuiteScript 1.0 to 2.1 API Map",
   "generatedDate": "2026-02-18",
   "modules": {
-    "N/record": { "description": "Create, read, update, delete records", "importName": "record" },
-    "N/currentRecord": { "description": "Access current record in client scripts", "importName": "currentRecord" },
-    "N/search": { "description": "Create and run saved searches", "importName": "search" },
-    "N/file": { "description": "Read, create, and delete files in the File Cabinet", "importName": "file" },
-    "N/format": { "description": "Parse and format dates, numbers, and currencies", "importName": "format" },
-    "N/email": { "description": "Send email and campaign messages", "importName": "email" },
-    "N/error": { "description": "Create and handle SuiteScript errors", "importName": "error" },
-    "N/runtime": { "description": "Access script, session, and user context", "importName": "runtime" },
-    "N/log": { "description": "Log execution details for debugging", "importName": "log" },
-    "N/http": { "description": "Make HTTP requests (client and server)", "importName": "http" },
-    "N/https": { "description": "Make HTTPS requests with credentials", "importName": "https" },
-    "N/url": { "description": "Resolve URLs for records, scripts, and task links", "importName": "url" },
-    "N/redirect": { "description": "Redirect users to records, suitelets, and search results", "importName": "redirect" },
-    "N/render": { "description": "Render PDFs, email templates, and print records", "importName": "render" },
-    "N/xml": { "description": "Parse, validate, and transform XML documents", "importName": "xml" },
-    "N/task": { "description": "Schedule scripts, CSV imports, and async tasks", "importName": "task" },
-    "N/workflow": { "description": "Initiate and trigger workflow actions", "importName": "workflow" },
-    "N/ui/serverWidget": { "description": "Build Suitelet forms, assistants, and lists", "importName": "serverWidget" },
-    "N/config": { "description": "Load company configuration records", "importName": "config" },
-    "N/crypto": { "description": "Hashing, HMAC, encryption, and password checking", "importName": "crypto" },
-    "N/encode": { "description": "Encode and decode strings (Base64, UTF-8, hex)", "importName": "encode" },
-    "N/currency": { "description": "Get exchange rates between currencies", "importName": "currency" },
-    "N/auth": { "description": "Change email and password for current user", "importName": "auth" },
-    "N/transaction": { "description": "Void transactions", "importName": "transaction" },
-    "N/portlet": { "description": "Portlet refresh in dashboard scripts", "importName": "portlet" },
-    "N/sso": { "description": "Generate SuiteSignOn tokens (DEPRECATED as of 2025.1)", "importName": "sso" }
+    "N/record": {
+      "description": "Create, read, update, delete records",
+      "importName": "record"
+    },
+    "N/currentRecord": {
+      "description": "Access current record in client scripts",
+      "importName": "currentRecord"
+    },
+    "N/search": {
+      "description": "Create and run saved searches",
+      "importName": "search"
+    },
+    "N/file": {
+      "description": "Read, create, and delete files in the File Cabinet",
+      "importName": "file"
+    },
+    "N/format": {
+      "description": "Parse and format dates, numbers, and currencies",
+      "importName": "format"
+    },
+    "N/email": {
+      "description": "Send email and campaign messages",
+      "importName": "email"
+    },
+    "N/error": {
+      "description": "Create and handle SuiteScript errors",
+      "importName": "error"
+    },
+    "N/runtime": {
+      "description": "Access script, session, and user context",
+      "importName": "runtime"
+    },
+    "N/log": {
+      "description": "Log execution details for debugging",
+      "importName": "log"
+    },
+    "N/http": {
+      "description": "Make HTTP requests (client and server)",
+      "importName": "http"
+    },
+    "N/https": {
+      "description": "Make HTTPS requests with credentials",
+      "importName": "https"
+    },
+    "N/url": {
+      "description": "Resolve URLs for records, scripts, and task links",
+      "importName": "url"
+    },
+    "N/redirect": {
+      "description": "Redirect users to records, suitelets, and search results",
+      "importName": "redirect"
+    },
+    "N/render": {
+      "description": "Render PDFs, email templates, and print records",
+      "importName": "render"
+    },
+    "N/xml": {
+      "description": "Parse, validate, and transform XML documents",
+      "importName": "xml"
+    },
+    "N/task": {
+      "description": "Schedule scripts, CSV imports, and async tasks",
+      "importName": "task"
+    },
+    "N/workflow": {
+      "description": "Initiate and trigger workflow actions",
+      "importName": "workflow"
+    },
+    "N/ui/serverWidget": {
+      "description": "Build Suitelet forms, assistants, and lists",
+      "importName": "serverWidget"
+    },
+    "N/config": {
+      "description": "Load company configuration records",
+      "importName": "config"
+    },
+    "N/crypto": {
+      "description": "Hashing, HMAC, encryption, and password checking",
+      "importName": "crypto"
+    },
+    "N/encode": {
+      "description": "Encode and decode strings (Base64, UTF-8, hex)",
+      "importName": "encode"
+    },
+    "N/currency": {
+      "description": "Get exchange rates between currencies",
+      "importName": "currency"
+    },
+    "N/auth": {
+      "description": "Change email and password for current user",
+      "importName": "auth"
+    },
+    "N/transaction": {
+      "description": "Void transactions",
+      "importName": "transaction"
+    },
+    "N/portlet": {
+      "description": "Portlet refresh in dashboard scripts",
+      "importName": "portlet"
+    },
+    "N/sso": {
+      "description": "Generate SuiteSignOn tokens (DEPRECATED as of 2025.1)",
+      "importName": "sso"
+    }
   },
   "mappings": [
     {
@@ -38,10 +116,26 @@
       "ss2Method": "record.attach",
       "ss2Signature": "record.attach({record: {type: string, id: number}, to: {type: string, id: number}, attributes: Object})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "record.type", "notes": "Nested in record object" },
-        { "ss1Param": "id", "ss2Param": "record.id", "notes": "Nested in record object" },
-        { "ss1Param": "type2", "ss2Param": "to.type", "notes": "Nested in to object" },
-        { "ss1Param": "id2", "ss2Param": "to.id", "notes": "Nested in to object" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "record.type",
+          "notes": "Nested in record object"
+        },
+        {
+          "ss1Param": "id",
+          "ss2Param": "record.id",
+          "notes": "Nested in record object"
+        },
+        {
+          "ss1Param": "type2",
+          "ss2Param": "to.type",
+          "notes": "Nested in to object"
+        },
+        {
+          "ss1Param": "id2",
+          "ss2Param": "to.id",
+          "notes": "Nested in to object"
+        }
       ],
       "breakingChanges": ["Options object replaces positional parameters"],
       "notes": "Attach one record to another",
@@ -102,7 +196,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
         { "ss1Param": "id", "ss2Param": "id", "notes": "Same" },
-        { "ss1Param": "initializeValues", "ss2Param": "defaultValues", "notes": "Renamed" }
+        {
+          "ss1Param": "initializeValues",
+          "ss2Param": "defaultValues",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": ["Returns record.Record instead of nlobjRecord"],
       "notes": "Copy an existing record",
@@ -117,9 +215,15 @@
       "ss2Signature": "serverWidget.createAssistant({title: string, hideNavBar: boolean})",
       "parameterChanges": [
         { "ss1Param": "title", "ss2Param": "title", "notes": "Same" },
-        { "ss1Param": "hideHeader", "ss2Param": "hideNavBar", "notes": "Renamed" }
+        {
+          "ss1Param": "hideHeader",
+          "ss2Param": "hideNavBar",
+          "notes": "Renamed"
+        }
       ],
-      "breakingChanges": ["Returns serverWidget.Assistant instead of nlobjAssistant"],
+      "breakingChanges": [
+        "Returns serverWidget.Assistant instead of nlobjAssistant"
+      ],
       "notes": "Create assistant (wizard) UI",
       "category": "ui",
       "context": "server"
@@ -131,7 +235,9 @@
       "ss2Method": "task.create",
       "ss2Signature": "task.create({taskType: task.TaskType.CSV_IMPORT})",
       "parameterChanges": [],
-      "breakingChanges": ["Returns task.CsvImportTask instead of nlobjCSVImport"],
+      "breakingChanges": [
+        "Returns task.CsvImportTask instead of nlobjCSVImport"
+      ],
       "notes": "CSV import now managed via task module",
       "category": "task",
       "context": "server"
@@ -146,7 +252,9 @@
         { "ss1Param": "sublist", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldname", "ss2Param": "fieldId", "notes": "Renamed" }
       ],
-      "breakingChanges": ["Subrecord paradigm completely different in SS2 - no separate commit/cancel"],
+      "breakingChanges": [
+        "Subrecord paradigm completely different in SS2 - no separate commit/cancel"
+      ],
       "notes": "Subrecords auto-commit when parent saves in SS2",
       "category": "subrecord",
       "context": "client"
@@ -158,9 +266,15 @@
       "ss2Method": "render.mergeEmail",
       "ss2Signature": "render.mergeEmail({templateId: number, entity: Object, recipient: Object, supportCaseId: number, transactionId: number, customRecord: Object})",
       "parameterChanges": [
-        { "ss1Param": "templateId", "ss2Param": "templateId", "notes": "Same, but now part of options object" }
+        {
+          "ss1Param": "templateId",
+          "ss2Param": "templateId",
+          "notes": "Same, but now part of options object"
+        }
       ],
-      "breakingChanges": ["Returns render.EmailMergeResult directly instead of nlobjEmailMerger"],
+      "breakingChanges": [
+        "Returns render.EmailMergeResult directly instead of nlobjEmailMerger"
+      ],
       "notes": "Merge happens in one call instead of build-then-merge pattern",
       "category": "render",
       "context": "server"
@@ -174,9 +288,15 @@
       "parameterChanges": [
         { "ss1Param": "code", "ss2Param": "name", "notes": "Renamed" },
         { "ss1Param": "details", "ss2Param": "message", "notes": "Renamed" },
-        { "ss1Param": "suppressNotification", "ss2Param": "notifyOff", "notes": "Renamed" }
+        {
+          "ss1Param": "suppressNotification",
+          "ss2Param": "notifyOff",
+          "notes": "Renamed"
+        }
       ],
-      "breakingChanges": ["Returns error.SuiteScriptError instead of nlobjError"],
+      "breakingChanges": [
+        "Returns error.SuiteScriptError instead of nlobjError"
+      ],
       "notes": "Dedicated error module in SS2",
       "category": "error",
       "context": "both"
@@ -189,7 +309,11 @@
       "ss2Signature": "file.create({name: string, fileType: file.Type, contents: string, folder: number})",
       "parameterChanges": [
         { "ss1Param": "name", "ss2Param": "name", "notes": "Same" },
-        { "ss1Param": "type", "ss2Param": "fileType", "notes": "Renamed; uses file.Type enum" },
+        {
+          "ss1Param": "type",
+          "ss2Param": "fileType",
+          "notes": "Renamed; uses file.Type enum"
+        },
         { "ss1Param": "contents", "ss2Param": "contents", "notes": "Same" }
       ],
       "breakingChanges": ["Returns file.File instead of nlobjFile"],
@@ -205,7 +329,11 @@
       "ss2Signature": "serverWidget.createForm({title: string, hideNavBar: boolean})",
       "parameterChanges": [
         { "ss1Param": "title", "ss2Param": "title", "notes": "Same" },
-        { "ss1Param": "hideNavbar", "ss2Param": "hideNavBar", "notes": "Renamed (camelCase)" }
+        {
+          "ss1Param": "hideNavbar",
+          "ss2Param": "hideNavBar",
+          "notes": "Renamed (camelCase)"
+        }
       ],
       "breakingChanges": ["Returns serverWidget.Form instead of nlobjForm"],
       "notes": "Create Suitelet form UI",
@@ -220,7 +348,11 @@
       "ss2Signature": "serverWidget.createList({title: string, hideNavBar: boolean})",
       "parameterChanges": [
         { "ss1Param": "title", "ss2Param": "title", "notes": "Same" },
-        { "ss1Param": "hideNavbar", "ss2Param": "hideNavBar", "notes": "Renamed" }
+        {
+          "ss1Param": "hideNavbar",
+          "ss2Param": "hideNavBar",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": ["Returns serverWidget.List instead of nlobjList"],
       "notes": "Create list UI in Suitelet",
@@ -235,7 +367,11 @@
       "ss2Signature": "record.create({type: string, isDynamic: boolean, defaultValues: Object})",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
-        { "ss1Param": "initializeValues", "ss2Param": "defaultValues", "notes": "Renamed" }
+        {
+          "ss1Param": "initializeValues",
+          "ss2Param": "defaultValues",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": ["Returns record.Record instead of nlobjRecord"],
       "notes": "isDynamic is new in SS2 (controls standard vs dynamic mode)",
@@ -250,7 +386,11 @@
       "ss2Signature": "search.create({type: string, filters: Array, columns: Array, title: string, id: string})",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
-        { "ss1Param": "filters", "ss2Param": "filters", "notes": "Same; also supports filter expressions" },
+        {
+          "ss1Param": "filters",
+          "ss2Param": "filters",
+          "notes": "Same; also supports filter expressions"
+        },
         { "ss1Param": "columns", "ss2Param": "columns", "notes": "Same" }
       ],
       "breakingChanges": ["Returns search.Search instead of nlobjSearch"],
@@ -279,7 +419,9 @@
       "ss2Method": "render.create",
       "ss2Signature": "render.create()",
       "parameterChanges": [],
-      "breakingChanges": ["Returns render.TemplateRenderer instead of nlobjTemplateRenderer"],
+      "breakingChanges": [
+        "Returns render.TemplateRenderer instead of nlobjTemplateRenderer"
+      ],
       "notes": "Create template renderer for PDF generation",
       "category": "render",
       "context": "server"
@@ -292,7 +434,11 @@
       "ss2Signature": "format.format({value: Date, type: format.Type})",
       "parameterChanges": [
         { "ss1Param": "d", "ss2Param": "value", "notes": "Renamed" },
-        { "ss1Param": "format", "ss2Param": "type", "notes": "Uses format.Type enum" }
+        {
+          "ss1Param": "format",
+          "ss2Param": "type",
+          "notes": "Uses format.Type enum"
+        }
       ],
       "breakingChanges": [],
       "notes": "Format Date object to string",
@@ -335,10 +481,26 @@
       "ss2Method": "record.detach",
       "ss2Signature": "record.detach({record: {type: string, id: number}, from: {type: string, id: number}, attributes: Object})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "record.type", "notes": "Nested in record object" },
-        { "ss1Param": "id", "ss2Param": "record.id", "notes": "Nested in record object" },
-        { "ss1Param": "type2", "ss2Param": "from.type", "notes": "Nested in from object" },
-        { "ss1Param": "id2", "ss2Param": "from.id", "notes": "Nested in from object" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "record.type",
+          "notes": "Nested in record object"
+        },
+        {
+          "ss1Param": "id",
+          "ss2Param": "record.id",
+          "notes": "Nested in record object"
+        },
+        {
+          "ss1Param": "type2",
+          "ss2Param": "from.type",
+          "notes": "Nested in from object"
+        },
+        {
+          "ss1Param": "id2",
+          "ss2Param": "from.id",
+          "notes": "Nested in from object"
+        }
       ],
       "breakingChanges": ["Options object replaces positional parameters"],
       "notes": "Detach one record from another",
@@ -352,8 +514,16 @@
       "ss2Method": "Field.isDisabled",
       "ss2Signature": "field.isDisabled = true|false",
       "parameterChanges": [
-        { "ss1Param": "fldnam", "ss2Param": "getField({fieldId})", "notes": "Get field first, then set property" },
-        { "ss1Param": "val", "ss2Param": "isDisabled", "notes": "Now a property, not method param" }
+        {
+          "ss1Param": "fldnam",
+          "ss2Param": "getField({fieldId})",
+          "notes": "Get field first, then set property"
+        },
+        {
+          "ss1Param": "val",
+          "ss2Param": "isDisabled",
+          "notes": "Now a property, not method param"
+        }
       ],
       "breakingChanges": ["Method replaced by property on Field object"],
       "notes": "Two-step: get field via currentRecord.getField(), then set isDisabled property",
@@ -367,9 +537,21 @@
       "ss2Method": "Field.isDisabled",
       "ss2Signature": "field.isDisabled = true|false",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Used to get sublist field" },
-        { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Used to get sublist field" },
-        { "ss1Param": "val", "ss2Param": "isDisabled", "notes": "Now a property" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "sublistId",
+          "notes": "Used to get sublist field"
+        },
+        {
+          "ss1Param": "fldnam",
+          "ss2Param": "fieldId",
+          "notes": "Used to get sublist field"
+        },
+        {
+          "ss1Param": "val",
+          "ss2Param": "isDisabled",
+          "notes": "Now a property"
+        }
       ],
       "breakingChanges": ["Method replaced by property on Field object"],
       "notes": "Get field via getSublistField(), then set isDisabled property",
@@ -426,9 +608,21 @@
       "ss2Method": "currency.exchangeRate",
       "ss2Signature": "currency.exchangeRate({source: string, target: string, date: Date})",
       "parameterChanges": [
-        { "ss1Param": "sourceCurrency", "ss2Param": "source", "notes": "Shortened" },
-        { "ss1Param": "targetCurrency", "ss2Param": "target", "notes": "Shortened" },
-        { "ss1Param": "effectiveDate", "ss2Param": "date", "notes": "Shortened" }
+        {
+          "ss1Param": "sourceCurrency",
+          "ss2Param": "source",
+          "notes": "Shortened"
+        },
+        {
+          "ss1Param": "targetCurrency",
+          "ss2Param": "target",
+          "notes": "Shortened"
+        },
+        {
+          "ss1Param": "effectiveDate",
+          "ss2Param": "date",
+          "notes": "Shortened"
+        }
       ],
       "breakingChanges": [],
       "notes": "Get exchange rate between currencies",
@@ -488,7 +682,9 @@
       "ss2Method": "runtime.getCurrentScript / runtime.getCurrentSession / runtime.getCurrentUser",
       "ss2Signature": "runtime.getCurrentScript() | runtime.getCurrentSession() | runtime.getCurrentUser()",
       "parameterChanges": [],
-      "breakingChanges": ["Single context object split into Script, Session, and User objects"],
+      "breakingChanges": [
+        "Single context object split into Script, Session, and User objects"
+      ],
       "notes": "Functionality split: Script (deployment, params), Session (session vars), User (role, dept, etc.)",
       "category": "runtime",
       "context": "both"
@@ -656,7 +852,11 @@
       "ss2Method": "task.create",
       "ss2Signature": "task.create({taskType: task.TaskType})",
       "parameterChanges": [
-        { "ss1Param": "jobType", "ss2Param": "taskType", "notes": "Renamed; uses task.TaskType enum" }
+        {
+          "ss1Param": "jobType",
+          "ss2Param": "taskType",
+          "notes": "Renamed; uses task.TaskType enum"
+        }
       ],
       "breakingChanges": ["Job manager pattern replaced by task module"],
       "notes": "Entity deduplication and merge operations via task module",
@@ -686,7 +886,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "linenum", "ss2Param": "line", "notes": "Renamed; 0-based in SS2 vs 1-based in SS1" }
+        {
+          "ss1Param": "linenum",
+          "ss2Param": "line",
+          "notes": "Renamed; 0-based in SS2 vs 1-based in SS1"
+        }
       ],
       "breakingChanges": ["Line numbering changed from 1-based to 0-based"],
       "notes": "Get field object on a specific sublist line",
@@ -849,7 +1053,9 @@
       "ss2Method": "scriptContext.newRecord",
       "ss2Signature": "scriptContext.newRecord (property on user event context)",
       "parameterChanges": [],
-      "breakingChanges": ["Accessed via context parameter in user event entry points"],
+      "breakingChanges": [
+        "Accessed via context parameter in user event entry points"
+      ],
       "notes": "Available in beforeLoad, beforeSubmit, afterSubmit user event scripts",
       "category": "record",
       "context": "server"
@@ -861,7 +1067,9 @@
       "ss2Method": "scriptContext.oldRecord",
       "ss2Signature": "scriptContext.oldRecord (property on user event context)",
       "parameterChanges": [],
-      "breakingChanges": ["Accessed via context parameter in user event entry points"],
+      "breakingChanges": [
+        "Accessed via context parameter in user event entry points"
+      ],
       "notes": "Available in beforeSubmit and afterSubmit user event scripts",
       "category": "record",
       "context": "server"
@@ -933,10 +1141,22 @@
       "ss2Method": "workflow.initiate",
       "ss2Signature": "workflow.initiate({recordType: string, recordId: number, workflowId: number|string, defaultValues: Object})",
       "parameterChanges": [
-        { "ss1Param": "recordtype", "ss2Param": "recordType", "notes": "camelCase" },
+        {
+          "ss1Param": "recordtype",
+          "ss2Param": "recordType",
+          "notes": "camelCase"
+        },
         { "ss1Param": "id", "ss2Param": "recordId", "notes": "Renamed" },
-        { "ss1Param": "workflowid", "ss2Param": "workflowId", "notes": "camelCase" },
-        { "ss1Param": "initialvalues", "ss2Param": "defaultValues", "notes": "Renamed" }
+        {
+          "ss1Param": "workflowid",
+          "ss2Param": "workflowId",
+          "notes": "camelCase"
+        },
+        {
+          "ss1Param": "initialvalues",
+          "ss2Param": "defaultValues",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": [],
       "notes": "Initiate a workflow on a record",
@@ -950,9 +1170,17 @@
       "ss2Method": "task.create({taskType: task.TaskType.WORKFLOW_TRIGGER})",
       "ss2Signature": "task.create({taskType: task.TaskType.WORKFLOW_TRIGGER, ...options})",
       "parameterChanges": [
-        { "ss1Param": "recordtype", "ss2Param": "recordType", "notes": "camelCase" },
+        {
+          "ss1Param": "recordtype",
+          "ss2Param": "recordType",
+          "notes": "camelCase"
+        },
         { "ss1Param": "id", "ss2Param": "recordId", "notes": "Renamed" },
-        { "ss1Param": "workflowid", "ss2Param": "workflowId", "notes": "camelCase" }
+        {
+          "ss1Param": "workflowid",
+          "ss2Param": "workflowId",
+          "notes": "camelCase"
+        }
       ],
       "breakingChanges": ["Uses task module instead of direct async call"],
       "notes": "Async workflow trigger via task module",
@@ -967,7 +1195,11 @@
       "ss2Signature": "insertLine({sublistId: string, line: number})",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
-        { "ss1Param": "line", "ss2Param": "line", "notes": "0-based in SS2 vs 1-based in SS1" }
+        {
+          "ss1Param": "line",
+          "ss2Param": "line",
+          "notes": "0-based in SS2 vs 1-based in SS1"
+        }
       ],
       "breakingChanges": ["Line numbering changed from 1-based to 0-based"],
       "notes": "Insert a new line into a sublist",
@@ -1013,9 +1245,15 @@
       "ss2Method": "Sublist.isChanged",
       "ss2Signature": "sublist.isChanged (read-only property)",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Used to get Sublist object" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "sublistId",
+          "notes": "Used to get Sublist object"
+        }
       ],
-      "breakingChanges": ["Property on Sublist object instead of global function"],
+      "breakingChanges": [
+        "Property on Sublist object instead of global function"
+      ],
       "notes": "Get sublist via getSublist(), then check isChanged property",
       "category": "sublist",
       "context": "both"
@@ -1027,9 +1265,15 @@
       "ss2Method": "config.load",
       "ss2Signature": "config.load({type: config.Type})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "type", "notes": "Uses config.Type enum" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "type",
+          "notes": "Uses config.Type enum"
+        }
       ],
-      "breakingChanges": ["Returns record.Record instead of nlobjConfiguration"],
+      "breakingChanges": [
+        "Returns record.Record instead of nlobjConfiguration"
+      ],
       "notes": "Load company configuration; returns Record object",
       "category": "config",
       "context": "server"
@@ -1041,7 +1285,11 @@
       "ss2Method": "file.load",
       "ss2Signature": "file.load({id: number|string})",
       "parameterChanges": [
-        { "ss1Param": "id", "ss2Param": "id", "notes": "Same; also accepts file path string" }
+        {
+          "ss1Param": "id",
+          "ss2Param": "id",
+          "notes": "Same; also accepts file path string"
+        }
       ],
       "breakingChanges": ["Returns file.File instead of nlobjFile"],
       "notes": "Load file from File Cabinet by ID or path",
@@ -1057,7 +1305,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
         { "ss1Param": "id", "ss2Param": "id", "notes": "Same" },
-        { "ss1Param": "initializeValues", "ss2Param": "defaultValues", "notes": "Renamed" }
+        {
+          "ss1Param": "initializeValues",
+          "ss2Param": "defaultValues",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": ["Returns record.Record instead of nlobjRecord"],
       "notes": "isDynamic is new in SS2",
@@ -1086,9 +1338,17 @@
       "ss2Method": "log.audit / log.debug / log.emergency / log.error",
       "ss2Signature": "log.debug({title: string, details: *}) | log.audit({title: string, details: *}) | log.error({title: string, details: *}) | log.emergency({title: string, details: *})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "(method name)", "notes": "Log level determines which method to call" },
+        {
+          "ss1Param": "type",
+          "ss2Param": "(method name)",
+          "notes": "Log level determines which method to call"
+        },
         { "ss1Param": "title", "ss2Param": "title", "notes": "Same" },
-        { "ss1Param": "details", "ss2Param": "details", "notes": "Same; accepts any type in SS2" }
+        {
+          "ss1Param": "details",
+          "ss2Param": "details",
+          "notes": "Same; accepts any type in SS2"
+        }
       ],
       "breakingChanges": ["Single function split into level-specific methods"],
       "notes": "Separate methods per level: log.debug, log.audit, log.error, log.emergency",
@@ -1105,7 +1365,11 @@
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
         { "ss1Param": "id", "ss2Param": "id", "notes": "Same" },
         { "ss1Param": "fields", "ss2Param": "columns", "notes": "Renamed" },
-        { "ss1Param": "text", "ss2Param": "(N/A)", "notes": "No text param; results include both value and text" }
+        {
+          "ss1Param": "text",
+          "ss2Param": "(N/A)",
+          "notes": "No text param; results include both value and text"
+        }
       ],
       "breakingChanges": ["Returns object with arrays for each field value"],
       "notes": "Returns data in {fieldId: [value]} format; text fields are returned as nested objects.",
@@ -1133,9 +1397,17 @@
       "ss2Method": "render.transaction / render.statement / render.packingSlip / render.pickingTicket / render.bom",
       "ss2Signature": "render.transaction({entityId: number, printMode: render.PrintMode}) (and similar for other types)",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "(method name)", "notes": "Record type determines which method" },
+        {
+          "ss1Param": "type",
+          "ss2Param": "(method name)",
+          "notes": "Record type determines which method"
+        },
         { "ss1Param": "id", "ss2Param": "entityId", "notes": "Renamed" },
-        { "ss1Param": "mode", "ss2Param": "printMode", "notes": "Uses render.PrintMode enum" }
+        {
+          "ss1Param": "mode",
+          "ss2Param": "printMode",
+          "notes": "Uses render.PrintMode enum"
+        }
       ],
       "breakingChanges": ["Single function split into type-specific methods"],
       "notes": "Separate methods: render.transaction, render.statement, render.packingSlip, render.pickingTicket, render.bom",
@@ -1177,7 +1449,11 @@
       "ss2Signature": "removeLine({sublistId: string, line: number, ignoreRecalc: boolean})",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
-        { "ss1Param": "line", "ss2Param": "line", "notes": "0-based in SS2 vs 1-based in SS1" }
+        {
+          "ss1Param": "line",
+          "ss2Param": "line",
+          "notes": "0-based in SS2 vs 1-based in SS1"
+        }
       ],
       "breakingChanges": ["Line numbering changed from 1-based to 0-based"],
       "notes": "Remove a line from sublist. Also available on Record.",
@@ -1236,10 +1512,21 @@
         { "ss1Param": "url", "ss2Param": "url", "notes": "Same" },
         { "ss1Param": "postdata", "ss2Param": "body", "notes": "Renamed" },
         { "ss1Param": "headers", "ss2Param": "headers", "notes": "Same" },
-        { "ss1Param": "callback", "ss2Param": "(N/A)", "notes": "Use N/https for async; or promise pattern" },
-        { "ss1Param": "httpMethod", "ss2Param": "(method name)", "notes": "HTTP method determines which function to call" }
+        {
+          "ss1Param": "callback",
+          "ss2Param": "(N/A)",
+          "notes": "Use N/https for async; or promise pattern"
+        },
+        {
+          "ss1Param": "httpMethod",
+          "ss2Param": "(method name)",
+          "notes": "HTTP method determines which function to call"
+        }
       ],
-      "breakingChanges": ["Single function split into method-specific functions", "Returns http.ClientResponse instead of nlobjResponse"],
+      "breakingChanges": [
+        "Single function split into method-specific functions",
+        "Returns http.ClientResponse instead of nlobjResponse"
+      ],
       "notes": "Separate functions per HTTP method: http.get, http.post, http.put, http.delete, http.request",
       "category": "http",
       "context": "both"
@@ -1251,7 +1538,11 @@
       "ss2Method": "https.get / https.post / https.put / https.delete / https.request",
       "ss2Signature": "https.get({url: string, headers: Object, credentials: Object}) (and similar for other methods)",
       "parameterChanges": [
-        { "ss1Param": "credentials", "ss2Param": "credentials", "notes": "Different format in SS2" },
+        {
+          "ss1Param": "credentials",
+          "ss2Param": "credentials",
+          "notes": "Different format in SS2"
+        },
         { "ss1Param": "url", "ss2Param": "url", "notes": "Same" },
         { "ss1Param": "postdata", "ss2Param": "body", "notes": "Renamed" }
       ],
@@ -1279,10 +1570,26 @@
       "ss2Method": "url.resolveRecord / url.resolveScript / url.resolveTaskLink",
       "ss2Signature": "url.resolveRecord({recordType: string, recordId: number, isEditMode: boolean}) | url.resolveScript({scriptId: string, deploymentId: string, params: Object}) | url.resolveTaskLink({id: string, params: Object})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "(method name)", "notes": "URL type determines which method" },
-        { "ss1Param": "identifier", "ss2Param": "recordType|scriptId|id", "notes": "Renamed per method" },
-        { "ss1Param": "id", "ss2Param": "recordId|deploymentId", "notes": "Renamed per method" },
-        { "ss1Param": "displayMode", "ss2Param": "isEditMode", "notes": "Boolean in SS2" }
+        {
+          "ss1Param": "type",
+          "ss2Param": "(method name)",
+          "notes": "URL type determines which method"
+        },
+        {
+          "ss1Param": "identifier",
+          "ss2Param": "recordType|scriptId|id",
+          "notes": "Renamed per method"
+        },
+        {
+          "ss1Param": "id",
+          "ss2Param": "recordId|deploymentId",
+          "notes": "Renamed per method"
+        },
+        {
+          "ss1Param": "displayMode",
+          "ss2Param": "isEditMode",
+          "notes": "Boolean in SS2"
+        }
       ],
       "breakingChanges": ["Single function split into type-specific methods"],
       "notes": "Separate methods: url.resolveRecord, url.resolveScript, url.resolveTaskLink",
@@ -1297,7 +1604,11 @@
       "ss2Signature": "task.create({taskType: task.TaskType.SCHEDULED_SCRIPT, scriptId: string, deploymentId: string, params: Object}).submit()",
       "parameterChanges": [
         { "ss1Param": "scriptId", "ss2Param": "scriptId", "notes": "Same" },
-        { "ss1Param": "deployId", "ss2Param": "deploymentId", "notes": "Renamed" },
+        {
+          "ss1Param": "deployId",
+          "ss2Param": "deploymentId",
+          "notes": "Renamed"
+        },
         { "ss1Param": "params", "ss2Param": "params", "notes": "Same" }
       ],
       "breakingChanges": ["Two-step: create task then call submit()"],
@@ -1343,11 +1654,18 @@
       "ss2Signature": "search.create({type: string, filters: Array, columns: Array}).run().each(callback) | search.load({id: string}).run().each(callback)",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
-        { "ss1Param": "id", "ss2Param": "id", "notes": "Used with search.load for saved searches" },
+        {
+          "ss1Param": "id",
+          "ss2Param": "id",
+          "notes": "Used with search.load for saved searches"
+        },
         { "ss1Param": "filters", "ss2Param": "filters", "notes": "Same" },
         { "ss1Param": "columns", "ss2Param": "columns", "notes": "Same" }
       ],
-      "breakingChanges": ["Results accessed via run().each() or run().getRange() instead of direct array return", "No 1000-result limit with each() pattern"],
+      "breakingChanges": [
+        "Results accessed via run().each() or run().getRange() instead of direct array return",
+        "No 1000-result limit with each() pattern"
+      ],
       "notes": "SS2 uses iterator pattern: search.create().run().each(). Use getRange() for bounded results.",
       "category": "search",
       "context": "both"
@@ -1360,7 +1678,11 @@
       "ss2Signature": "selectLine({sublistId: string, line: number})",
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
-        { "ss1Param": "linenum", "ss2Param": "line", "notes": "0-based in SS2 vs 1-based in SS1" }
+        {
+          "ss1Param": "linenum",
+          "ss2Param": "line",
+          "notes": "0-based in SS2 vs 1-based in SS1"
+        }
       ],
       "breakingChanges": ["Line numbering changed from 1-based to 0-based"],
       "notes": "Select an existing line for editing",
@@ -1421,7 +1743,9 @@
         { "ss1Param": "node", "ss2Param": "node", "notes": "Same" },
         { "ss1Param": "xpath", "ss2Param": "xpath", "notes": "Same" }
       ],
-      "breakingChanges": ["Two-step: select node, then access textContent property"],
+      "breakingChanges": [
+        "Two-step: select node, then access textContent property"
+      ],
       "notes": "No direct equivalent; use XPath.select() then access .textContent",
       "category": "xml",
       "context": "both"
@@ -1448,8 +1772,16 @@
       "ss2Method": "email.sendCampaignEvent",
       "ss2Signature": "email.sendCampaignEvent({campaignEventId: number, recipientId: number})",
       "parameterChanges": [
-        { "ss1Param": "campaigneventid", "ss2Param": "campaignEventId", "notes": "camelCase" },
-        { "ss1Param": "recipientid", "ss2Param": "recipientId", "notes": "camelCase" }
+        {
+          "ss1Param": "campaigneventid",
+          "ss2Param": "campaignEventId",
+          "notes": "camelCase"
+        },
+        {
+          "ss1Param": "recipientid",
+          "ss2Param": "recipientId",
+          "notes": "camelCase"
+        }
       ],
       "breakingChanges": [],
       "notes": "Send campaign email event",
@@ -1464,11 +1796,23 @@
       "ss2Signature": "email.send({author: number, recipients: string|string[], subject: string, body: string, cc: string[], bcc: string[], relatedRecords: Object, attachments: file.File[]})",
       "parameterChanges": [
         { "ss1Param": "author", "ss2Param": "author", "notes": "Same" },
-        { "ss1Param": "recipient", "ss2Param": "recipients", "notes": "Renamed; accepts array" },
+        {
+          "ss1Param": "recipient",
+          "ss2Param": "recipients",
+          "notes": "Renamed; accepts array"
+        },
         { "ss1Param": "subject", "ss2Param": "subject", "notes": "Same" },
         { "ss1Param": "body", "ss2Param": "body", "notes": "Same" },
-        { "ss1Param": "records", "ss2Param": "relatedRecords", "notes": "Renamed; different format" },
-        { "ss1Param": "attachments", "ss2Param": "attachments", "notes": "Uses file.File objects" }
+        {
+          "ss1Param": "records",
+          "ss2Param": "relatedRecords",
+          "notes": "Renamed; different format"
+        },
+        {
+          "ss1Param": "attachments",
+          "ss2Param": "attachments",
+          "notes": "Uses file.File objects"
+        }
       ],
       "breakingChanges": ["Attachments must be file.File objects"],
       "notes": "Also has email.sendBulk() for bulk sending",
@@ -1484,10 +1828,20 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Renamed and inverted logic" },
-        { "ss1Param": "synchronous", "ss2Param": "fireSlavingSync", "notes": "Renamed" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Renamed and inverted logic"
+        },
+        {
+          "ss1Param": "synchronous",
+          "ss2Param": "fireSlavingSync",
+          "notes": "Renamed"
+        }
       ],
-      "breakingChanges": ["ignoreFieldChange has inverted logic from firefieldchanged"],
+      "breakingChanges": [
+        "ignoreFieldChange has inverted logic from firefieldchanged"
+      ],
       "notes": "Set matrix value on current line",
       "category": "sublist",
       "context": "client"
@@ -1501,7 +1855,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Inverted logic" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Inverted logic"
+        }
       ],
       "breakingChanges": ["ignoreFieldChange has inverted logic"],
       "notes": "Set display text on current sublist line",
@@ -1517,7 +1875,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Inverted logic" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Inverted logic"
+        }
       ],
       "breakingChanges": ["ignoreFieldChange has inverted logic"],
       "notes": "Set value on current sublist line",
@@ -1533,7 +1895,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "values", "ss2Param": "value", "notes": "Pass array as value" }
+        {
+          "ss1Param": "values",
+          "ss2Param": "value",
+          "notes": "Pass array as value"
+        }
       ],
       "breakingChanges": [],
       "notes": "For multi-select fields, pass array as value",
@@ -1549,7 +1915,11 @@
       "parameterChanges": [
         { "ss1Param": "fldname", "ss2Param": "fieldId", "notes": "Renamed" },
         { "ss1Param": "txt", "ss2Param": "text", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Inverted logic" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Inverted logic"
+        }
       ],
       "breakingChanges": ["ignoreFieldChange has inverted logic"],
       "notes": "Set field display text (client-side)",
@@ -1564,7 +1934,11 @@
       "ss2Signature": "setText({fieldId: string, text: string[], ignoreFieldChange: boolean})",
       "parameterChanges": [
         { "ss1Param": "fldname", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "txts", "ss2Param": "text", "notes": "Pass array for multi-select" }
+        {
+          "ss1Param": "txts",
+          "ss2Param": "text",
+          "notes": "Pass array for multi-select"
+        }
       ],
       "breakingChanges": [],
       "notes": "For multi-select fields",
@@ -1579,7 +1953,11 @@
       "ss2Signature": "setValue({fieldId: string, value: *, ignoreFieldChange: boolean, fireSlavingSync: boolean})",
       "parameterChanges": [
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Inverted logic" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Inverted logic"
+        }
       ],
       "breakingChanges": ["ignoreFieldChange has inverted logic"],
       "notes": "Set field value (client-side)",
@@ -1594,7 +1972,11 @@
       "ss2Signature": "setValue({fieldId: string, value: *[], ignoreFieldChange: boolean})",
       "parameterChanges": [
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "value", "ss2Param": "value", "notes": "Pass array for multi-select" }
+        {
+          "ss1Param": "value",
+          "ss2Param": "value",
+          "notes": "Pass array for multi-select"
+        }
       ],
       "breakingChanges": [],
       "notes": "For multi-select fields",
@@ -1626,7 +2008,11 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "sublistId", "notes": "Renamed" },
         { "ss1Param": "fldnam", "ss2Param": "fieldId", "notes": "Renamed" },
-        { "ss1Param": "firefieldchanged", "ss2Param": "ignoreFieldChange", "notes": "Inverted logic" }
+        {
+          "ss1Param": "firefieldchanged",
+          "ss2Param": "ignoreFieldChange",
+          "notes": "Inverted logic"
+        }
       ],
       "breakingChanges": ["ignoreFieldChange has inverted logic"],
       "notes": "Set matrix header value",
@@ -1640,9 +2026,21 @@
       "ss2Method": "redirect.toRecord / redirect.toSuitelet / redirect.toTaskLink / redirect.redirect",
       "ss2Signature": "redirect.toRecord({type: string, id: number, isEditMode: boolean, parameters: Object}) | redirect.toSuitelet({scriptId: string, deploymentId: string, parameters: Object})",
       "parameterChanges": [
-        { "ss1Param": "type", "ss2Param": "(method name)", "notes": "Redirect type determines which method" },
-        { "ss1Param": "identifier", "ss2Param": "type|scriptId", "notes": "Renamed per method" },
-        { "ss1Param": "id", "ss2Param": "id|deploymentId", "notes": "Renamed per method" },
+        {
+          "ss1Param": "type",
+          "ss2Param": "(method name)",
+          "notes": "Redirect type determines which method"
+        },
+        {
+          "ss1Param": "identifier",
+          "ss2Param": "type|scriptId",
+          "notes": "Renamed per method"
+        },
+        {
+          "ss1Param": "id",
+          "ss2Param": "id|deploymentId",
+          "notes": "Renamed per method"
+        },
         { "ss1Param": "editmode", "ss2Param": "isEditMode", "notes": "Renamed" }
       ],
       "breakingChanges": ["Single function split into type-specific methods"],
@@ -1658,7 +2056,11 @@
       "ss2Signature": "format.parse({value: string, type: format.Type})",
       "parameterChanges": [
         { "ss1Param": "str", "ss2Param": "value", "notes": "Renamed" },
-        { "ss1Param": "format", "ss2Param": "type", "notes": "Uses format.Type enum" }
+        {
+          "ss1Param": "format",
+          "ss2Param": "type",
+          "notes": "Uses format.Type enum"
+        }
       ],
       "breakingChanges": [],
       "notes": "Parse string to Date object",
@@ -1686,7 +2088,9 @@
       "ss2Method": "Record.save",
       "ss2Signature": "record.save()",
       "parameterChanges": [],
-      "breakingChanges": ["Call save() on the Record object returned by config.load()"],
+      "breakingChanges": [
+        "Call save() on the Record object returned by config.load()"
+      ],
       "notes": "Save configuration record obtained via config.load()",
       "category": "config",
       "context": "server"
@@ -1712,9 +2116,21 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "type", "notes": "Same" },
         { "ss1Param": "id", "ss2Param": "id", "notes": "Same" },
-        { "ss1Param": "fields", "ss2Param": "values (keys)", "notes": "Field names are object keys" },
-        { "ss1Param": "values", "ss2Param": "values (values)", "notes": "Field values are object values" },
-        { "ss1Param": "doSourcing", "ss2Param": "options.enableSourcing", "notes": "Nested in options" }
+        {
+          "ss1Param": "fields",
+          "ss2Param": "values (keys)",
+          "notes": "Field names are object keys"
+        },
+        {
+          "ss1Param": "values",
+          "ss2Param": "values (values)",
+          "notes": "Field values are object values"
+        },
+        {
+          "ss1Param": "doSourcing",
+          "ss2Param": "options.enableSourcing",
+          "notes": "Nested in options"
+        }
       ],
       "breakingChanges": ["fields+values merged into single values object"],
       "notes": "Update fields without loading record. Governance: 10 units (less than load+save of 30 units).",
@@ -1740,8 +2156,16 @@
       "ss2Method": "Record.save",
       "ss2Signature": "record.save({enableSourcing: boolean, ignoreMandatoryFields: boolean})",
       "parameterChanges": [
-        { "ss1Param": "doSourcing", "ss2Param": "enableSourcing", "notes": "Renamed" },
-        { "ss1Param": "ignoreMandatoryFields", "ss2Param": "ignoreMandatoryFields", "notes": "Same" }
+        {
+          "ss1Param": "doSourcing",
+          "ss2Param": "enableSourcing",
+          "notes": "Renamed"
+        },
+        {
+          "ss1Param": "ignoreMandatoryFields",
+          "ss2Param": "ignoreMandatoryFields",
+          "notes": "Same"
+        }
       ],
       "breakingChanges": ["Method on Record object instead of global function"],
       "notes": "Call save() on the record.Record object. Returns record internal ID.",
@@ -1757,8 +2181,16 @@
       "parameterChanges": [
         { "ss1Param": "type", "ss2Param": "fromType", "notes": "Renamed" },
         { "ss1Param": "id", "ss2Param": "fromId", "notes": "Renamed" },
-        { "ss1Param": "transformType", "ss2Param": "toType", "notes": "Renamed" },
-        { "ss1Param": "transformValues", "ss2Param": "defaultValues", "notes": "Renamed" }
+        {
+          "ss1Param": "transformType",
+          "ss2Param": "toType",
+          "notes": "Renamed"
+        },
+        {
+          "ss1Param": "transformValues",
+          "ss2Param": "defaultValues",
+          "notes": "Renamed"
+        }
       ],
       "breakingChanges": ["Returns record.Record instead of nlobjRecord"],
       "notes": "Transform one record type to another (for example, estimate to sales order)",
@@ -1772,10 +2204,22 @@
       "ss2Method": "workflow.trigger",
       "ss2Signature": "workflow.trigger({recordType: string, recordId: number, workflowId: number|string, actionId: number|string, stateId: number|string})",
       "parameterChanges": [
-        { "ss1Param": "recordtype", "ss2Param": "recordType", "notes": "camelCase" },
+        {
+          "ss1Param": "recordtype",
+          "ss2Param": "recordType",
+          "notes": "camelCase"
+        },
         { "ss1Param": "id", "ss2Param": "recordId", "notes": "Renamed" },
-        { "ss1Param": "workflowid", "ss2Param": "workflowId", "notes": "camelCase" },
-        { "ss1Param": "actionid", "ss2Param": "actionId", "notes": "camelCase" },
+        {
+          "ss1Param": "workflowid",
+          "ss2Param": "workflowId",
+          "notes": "camelCase"
+        },
+        {
+          "ss1Param": "actionid",
+          "ss2Param": "actionId",
+          "notes": "camelCase"
+        },
         { "ss1Param": "stateid", "ss2Param": "stateId", "notes": "camelCase" }
       ],
       "breakingChanges": [],
@@ -1791,8 +2235,16 @@
       "ss2Signature": "xml.validate({xml: xml.Document, xsdFilePathOrId: string, importFolderPathOrId: string})",
       "parameterChanges": [
         { "ss1Param": "xmlDocument", "ss2Param": "xml", "notes": "Renamed" },
-        { "ss1Param": "schemaDocument", "ss2Param": "xsdFilePathOrId", "notes": "Renamed; accepts path or ID" },
-        { "ss1Param": "schemaFolderId", "ss2Param": "importFolderPathOrId", "notes": "Renamed; accepts path or ID" }
+        {
+          "ss1Param": "schemaDocument",
+          "ss2Param": "xsdFilePathOrId",
+          "notes": "Renamed; accepts path or ID"
+        },
+        {
+          "ss1Param": "schemaFolderId",
+          "ss2Param": "importFolderPathOrId",
+          "notes": "Renamed; accepts path or ID"
+        }
       ],
       "breakingChanges": [],
       "notes": "Validate XML document against XSD schema",
@@ -1851,7 +2303,11 @@
       "ss2Method": "transaction.void",
       "ss2Signature": "transaction.void({type: string, id: number})",
       "parameterChanges": [
-        { "ss1Param": "transactionType", "ss2Param": "type", "notes": "Shortened" },
+        {
+          "ss1Param": "transactionType",
+          "ss2Param": "type",
+          "notes": "Shortened"
+        },
         { "ss1Param": "recordId", "ss2Param": "id", "notes": "Shortened" }
       ],
       "breakingChanges": [],
@@ -1866,7 +2322,11 @@
       "ss2Method": "render.xmlToPdf",
       "ss2Signature": "render.xmlToPdf({xmlString: string})",
       "parameterChanges": [
-        { "ss1Param": "xmlstring", "ss2Param": "xmlString", "notes": "camelCase" }
+        {
+          "ss1Param": "xmlstring",
+          "ss2Param": "xmlString",
+          "notes": "camelCase"
+        }
       ],
       "breakingChanges": ["Returns file.File instead of nlobjFile"],
       "notes": "Also available via TemplateRenderer.renderAsPdf()",

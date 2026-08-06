@@ -50,9 +50,7 @@ function toCallToolResult(result: unknown): CallToolResult {
       {
         type: "text",
         text:
-          typeof result === "string"
-            ? result
-            : JSON.stringify(result ?? null),
+          typeof result === "string" ? result : JSON.stringify(result ?? null),
       },
     ],
   };
@@ -178,16 +176,12 @@ export function McpAppHost({
 
         const resourcePayload = await resourceResponse.json();
         if (!resourceResponse.ok) {
-          throw new Error(
-            resourcePayload.error || "Failed to load MCP App UI",
-          );
+          throw new Error(resourcePayload.error || "Failed to load MCP App UI");
         }
 
         const callPayload = await callResponse.json();
         const freshResult = toCallToolResult(
-          callResponse.ok || callPayload?.content
-            ? callPayload
-            : launch.result,
+          callResponse.ok || callPayload?.content ? callPayload : launch.result,
         );
 
         if (cancelled) {
@@ -258,10 +252,9 @@ export function McpAppHost({
           },
           {
             hostContext: {
-              theme:
-                document.documentElement.classList.contains("dark")
-                  ? "dark"
-                  : "light",
+              theme: document.documentElement.classList.contains("dark")
+                ? "dark"
+                : "light",
               platform: "web",
               displayMode: "inline",
               availableDisplayModes: ["inline", "fullscreen"],
@@ -358,7 +351,7 @@ export function McpAppHost({
         };
 
         const initialized = new Promise<void>((resolve) => {
-          bridge!.oninitialized = () => {
+          bridge.oninitialized = () => {
             console.log("[MCP App] View initialized");
             resolve();
           };

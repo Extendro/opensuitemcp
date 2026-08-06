@@ -11,7 +11,9 @@
       "!node_modules",
       "!.turbo",
       "!dist",
-      "!build"
+      "!build",
+      // Vendored Oracle SuiteCloud Agent Skills pack (not our source)
+      "!lib/ai/skills/oracle"
     ]
   },
   "formatter": {

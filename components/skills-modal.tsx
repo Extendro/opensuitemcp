@@ -96,11 +96,20 @@ function formatSkillDate(value: string): string {
   });
 }
 
+const SKILL_SKELETON_KEYS = [
+  "skill-skel-a",
+  "skill-skel-b",
+  "skill-skel-c",
+  "skill-skel-d",
+  "skill-skel-e",
+  "skill-skel-f",
+] as const;
+
 function SkillsListSkeleton() {
   return (
     <div className="space-y-2">
-      {Array.from({ length: 6 }, (_, index) => (
-        <Skeleton className="h-10 w-full" key={`skill-skeleton-${index}`} />
+      {SKILL_SKELETON_KEYS.map((key) => (
+        <Skeleton className="h-10 w-full" key={key} />
       ))}
     </div>
   );
@@ -203,11 +212,7 @@ function SkillRow({
             {formatSkillDate(updatedAt)}
           </p>
         </button>
-        <div
-          className="flex shrink-0 items-center gap-1"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
+        <div className="flex shrink-0 items-center gap-1">
           {actions}
           <Switch
             aria-label={`Toggle ${name}`}
@@ -259,6 +264,8 @@ function CustomSkillEditor({
   const [content, setContent] = useState(initialContent);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputId = useId();
+  const nameInputId = useId();
+  const contentInputId = useId();
 
   useEffect(() => {
     setName(initialName);
@@ -282,7 +289,9 @@ function CustomSkillEditor({
       toast({
         type: "error",
         description:
-          error instanceof Error ? error.message : "Failed to save custom skill",
+          error instanceof Error
+            ? error.message
+            : "Failed to save custom skill",
       });
     } finally {
       setIsSaving(false);
@@ -300,9 +309,9 @@ function CustomSkillEditor({
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="custom-skill-name">Name</Label>
+          <Label htmlFor={nameInputId}>Name</Label>
           <Input
-            id="custom-skill-name"
+            id={nameInputId}
             onChange={(event) => setName(event.target.value)}
             placeholder="Custom skill"
             value={name}
@@ -310,7 +319,7 @@ function CustomSkillEditor({
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="custom-skill-content">Content</Label>
+            <Label htmlFor={contentInputId}>Content</Label>
             <div>
               <Input
                 accept=".md"
@@ -353,7 +362,7 @@ function CustomSkillEditor({
           </div>
           <Textarea
             className="min-h-[160px] font-mono text-sm"
-            id="custom-skill-content"
+            id={contentInputId}
             onChange={(event) => setContent(event.target.value)}
             placeholder="Write or import your custom skill instructions..."
             value={content}
@@ -364,7 +373,11 @@ function CustomSkillEditor({
         <Button onClick={onCancel} type="button" variant="outline">
           Cancel
         </Button>
-        <Button disabled={isSaving} onClick={() => void handleSave()} type="button">
+        <Button
+          disabled={isSaving}
+          onClick={() => void handleSave()}
+          type="button"
+        >
           {isSaving ? "Saving..." : "Save"}
         </Button>
       </DialogFooter>
@@ -429,7 +442,9 @@ export function SkillsPanel({ active }: SkillsPanelProps) {
 
   const runPersist = useCallback(
     async (
-      payload: Partial<Pick<SkillsResponse, "enabledSkillIds" | "customSkills">>,
+      payload: Partial<
+        Pick<SkillsResponse, "enabledSkillIds" | "customSkills">
+      >,
       rollback: () => void,
     ) => {
       try {
@@ -614,9 +629,7 @@ export function SkillsPanel({ active }: SkillsPanelProps) {
             {sortedCatalog.map((skill) => (
               <SkillRow
                 author={skill.author}
-                checked={
-                  skill.alwaysOn || enabledSkillIds.includes(skill.id)
-                }
+                checked={skill.alwaysOn || enabledSkillIds.includes(skill.id)}
                 description={skill.description}
                 disabled={skill.alwaysOn || pendingToggles.has(skill.id)}
                 key={skill.id}
