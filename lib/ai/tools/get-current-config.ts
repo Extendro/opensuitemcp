@@ -2,12 +2,15 @@ import { tool } from "ai";
 import { z } from "zod";
 import { chatModels } from "@/lib/ai/models";
 
+type AiProvider = "google" | "anthropic" | "openai";
+
 type GetCurrentConfigOptions = {
   selectedModelId: string;
   resolvedModelId: string;
-  provider: "google" | "anthropic" | "openai" | "inception";
+  provider: AiProvider;
   timezone: string;
   enabledSearchDomains: string[];
+  enabledSkills?: string[];
 };
 
 export type GetCurrentConfigToolResult = {
@@ -16,12 +19,13 @@ export type GetCurrentConfigToolResult = {
     resolvedId: string;
     name: string;
     description: string;
-    provider: "google" | "anthropic" | "openai" | "inception";
+    provider: AiProvider;
   };
   configuration: {
-    provider: "google" | "anthropic" | "openai" | "inception";
+    provider: AiProvider;
     timezone: string;
     enabledSearchDomains: string[];
+    enabledSkills: string[];
   };
 };
 
@@ -32,6 +36,7 @@ export function createGetCurrentConfigTool(options: GetCurrentConfigOptions) {
     provider,
     timezone,
     enabledSearchDomains,
+    enabledSkills = [],
   } = options;
 
   // Find the model info from chatModels - must match both id AND provider
@@ -44,7 +49,7 @@ export function createGetCurrentConfigTool(options: GetCurrentConfigOptions) {
 
   return tool({
     description:
-      "Get the current AI model and configuration settings. Use this when the user asks about what model they're using, their current settings, or their configuration.",
+      "Get the current AI model, configuration, and enabled skills. Use this when the user asks about what model they're using, their settings, or which skills are active.",
     inputSchema: z.object({}),
     execute: (): GetCurrentConfigToolResult => {
       // Re-lookup model info at execution time to ensure we have the latest data
@@ -64,6 +69,7 @@ export function createGetCurrentConfigTool(options: GetCurrentConfigOptions) {
           provider,
           timezone,
           enabledSearchDomains,
+          enabledSkills,
         },
       };
     },

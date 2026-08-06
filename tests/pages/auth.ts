@@ -54,6 +54,8 @@ export class AuthPage {
 
     await authMenuItem.click();
 
+    await this.openSidebar();
+    await this.page.getByTestId("user-nav-button").click();
     const userEmail = this.page.getByTestId("user-email");
     await expect(userEmail).toContainText("Guest");
   }

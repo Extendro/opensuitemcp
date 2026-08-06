@@ -12,6 +12,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { CustomSkill } from "../ai/skills/catalog";
 import type { AppUsage } from "../usage";
 
 export const user = pgTable("User", {
@@ -97,6 +98,7 @@ export const netsuiteToken = pgTable("NetSuiteToken", {
   userId: uuid("userId")
     .notNull()
     .references(() => user.id),
+  accountId: varchar("accountId", { length: 64 }),
   accessToken: text("accessToken").notNull(),
   refreshToken: text("refreshToken").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
@@ -105,6 +107,12 @@ export const netsuiteToken = pgTable("NetSuiteToken", {
 });
 
 export type NetSuiteToken = InferSelectModel<typeof netsuiteToken>;
+
+export type NetSuiteAccountEntry = {
+  accountId: string;
+  label: string;
+  clientId?: string | null;
+};
 
 export const userSettings = pgTable("UserSettings", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -115,13 +123,20 @@ export const userSettings = pgTable("UserSettings", {
   googleApiKey: text("googleApiKey"), // Encrypted
   anthropicApiKey: text("anthropicApiKey"), // Encrypted
   openaiApiKey: text("openaiApiKey"), // Encrypted
-  inceptionApiKey: text("inceptionApiKey"), // Encrypted
+  inceptionApiKey: text("inceptionApiKey"), // Legacy column; unused
   aiProvider: varchar("aiProvider", {
     length: 20,
-    enum: ["google", "anthropic", "openai", "inception"],
+    enum: ["google", "anthropic", "openai"],
   }).default("google"),
+  /** Active NetSuite account used for MCP requests */
   netsuiteAccountId: varchar("netsuiteAccountId", { length: 64 }),
+  /** Client ID for the active account (from DCR or manual override) */
   netsuiteClientId: varchar("netsuiteClientId", { length: 128 }),
+  /** Saved NetSuite accounts the user can switch between */
+  netsuiteAccounts: jsonb("netsuiteAccounts")
+    .$type<NetSuiteAccountEntry[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   timezone: varchar("timezone", { length: 64 }).default("UTC"),
   searchDomainIds: jsonb("searchDomainIds")
     .$type<string[]>()
@@ -129,6 +144,15 @@ export const userSettings = pgTable("UserSettings", {
     .default(sql`'[]'::jsonb`),
   maxIterations: text("maxIterations").default("10"), // Max reasoning steps (1-20)
   customInstructions: text("customInstructions"),
+  /** Oracle/builtin skill ids enabled for chat sessions */
+  enabledSkillIds: jsonb("enabledSkillIds")
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  customSkills: jsonb("customSkills")
+    .$type<CustomSkill[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
 });

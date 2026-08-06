@@ -5,11 +5,13 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "next-auth";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAppPortal } from "@/components/portal/context";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -20,14 +22,13 @@ import {
 } from "@/components/ui/sidebar";
 import { guestRegex } from "@/lib/constants";
 import { LoaderIcon, SignInIcon } from "./icons";
-import { SettingsModal } from "./settings-modal";
 import { toast } from "./toast";
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data, status } = useSession();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { openPortal } = useAppPortal();
 
   const isGuest = guestRegex.test(data?.user?.email ?? "");
 
@@ -43,8 +44,7 @@ export function SidebarUserNav({ user }: { user: User }) {
       });
       // Clean up URL
       router.replace("/");
-      // Open settings modal to show connection status
-      setSettingsOpen(true);
+      openPortal("netsuite");
     } else if (error?.startsWith("netsuite_")) {
       const errorDescription =
         searchParams.get("error_description") || "Unknown error";
@@ -55,16 +55,24 @@ export function SidebarUserNav({ user }: { user: User }) {
       // Clean up URL
       router.replace("/");
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, openPortal]);
 
-  // Open settings modal when query param is present
+  // Open portal when query param is present
   useEffect(() => {
     const settingsParam = searchParams.get("settings");
     if (settingsParam) {
-      setSettingsOpen(true);
+      const section =
+        settingsParam === "netsuite" ||
+        settingsParam === "search" ||
+        settingsParam === "timezone" ||
+        settingsParam === "account" ||
+        settingsParam === "provider"
+          ? settingsParam
+          : "provider";
+      openPortal(section);
       router.replace("/");
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, openPortal]);
 
   return (
     <SidebarMenu>
@@ -75,8 +83,8 @@ export function SidebarUserNav({ user }: { user: User }) {
               <SidebarMenuButton className="h-10 justify-between bg-background data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
                 <div className="flex flex-row gap-2">
                   <div className="size-6 animate-pulse rounded-full bg-zinc-500/30" />
-                  <span className="animate-pulse rounded-md bg-zinc-500/30 text-transparent">
-                    Loading auth status
+                  <span className="animate-pulse rounded-md bg-zinc-500/30 text-transparent group-data-[collapsible=icon]:hidden">
+                    Loading
                   </span>
                 </div>
                 <div className="animate-spin text-zinc-500">
@@ -95,61 +103,73 @@ export function SidebarUserNav({ user }: { user: User }) {
                   src={`https://avatar.vercel.sh/${user.email}`}
                   width={24}
                 />
-                <span className="truncate" data-testid="user-email">
-                  {isGuest ? "Guest" : user?.email}
+                <span
+                  className="truncate group-data-[collapsible=icon]:hidden"
+                  data-testid="user-account-label"
+                >
+                  {isGuest ? "Guest" : "Account"}
                 </span>
-                <ChevronUp className="ml-auto" />
+                <ChevronUp className="ml-auto group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-popper-anchor-width)"
+            align="start"
+            className="min-w-56 w-(--radix-popper-anchor-width)"
             data-testid="user-nav-menu"
             side="top"
           >
+            <DropdownMenuLabel className="font-normal" data-testid="user-email">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-muted-foreground text-xs">
+                  Signed in as
+                </span>
+                <span className="break-all font-medium text-sm">
+                  {isGuest ? "Guest" : (user?.email ?? "Account")}
+                </span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
               data-testid="user-nav-item-settings"
               onSelect={() => {
-                setSettingsOpen(true);
+                openPortal("account");
               }}
             >
               <Settings className="h-4 w-4" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild data-testid="user-nav-item-auth">
-              <button
-                className="flex w-full cursor-pointer items-center gap-2"
-                onClick={() => {
-                  if (status === "loading") {
-                    toast({
-                      type: "error",
-                      description:
-                        "Checking authentication status, please try again!",
-                    });
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="user-nav-item-auth"
+              onSelect={() => {
+                if (status === "loading") {
+                  toast({
+                    type: "error",
+                    description:
+                      "Checking authentication status, please try again!",
+                  });
+                  return;
+                }
 
-                    return;
-                  }
+                if (isGuest) {
+                  // Full navigation is more reliable than router.push when the
+                  // dropdown unmounts on mobile (iOS often swallows the click).
+                  window.location.assign("/login");
+                  return;
+                }
 
-                  if (isGuest) {
-                    router.push("/login");
-                  } else {
-                    signOut({
-                      redirectTo: "/",
-                    });
-                  }
-                }}
-                type="button"
-              >
-                <SignInIcon />
-                {isGuest ? "Login to your account" : "Sign out"}
-              </button>
+                void signOut({ redirectTo: "/" });
+              }}
+            >
+              <SignInIcon />
+              {isGuest ? "Login to your account" : "Sign out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-      <SettingsModal onOpenChange={setSettingsOpen} open={settingsOpen} />
     </SidebarMenu>
   );
 }

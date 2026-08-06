@@ -9,14 +9,10 @@ type GetCurrentConfigToolOutputProps = {
   result: GetCurrentConfigToolResult;
 };
 
-const PROVIDER_LABELS: Record<
-  "google" | "anthropic" | "openai" | "inception",
-  string
-> = {
+const PROVIDER_LABELS: Record<"google" | "anthropic" | "openai", string> = {
   google: "Google (Gemini)",
   anthropic: "Anthropic (Claude)",
   openai: "OpenAI",
-  inception: "Inception Labs (Mercury)",
 };
 
 export function GetCurrentConfigToolOutput({
@@ -47,8 +43,6 @@ export function GetCurrentConfigToolOutput({
                   "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
                 configuration.provider === "openai" &&
                   "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-                configuration.provider === "inception" &&
-                  "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
               )}
             >
               {PROVIDER_LABELS[configuration.provider]}
@@ -110,6 +104,29 @@ export function GetCurrentConfigToolOutput({
                     {configuration.enabledSearchDomains.map((domain) => (
                       <Badge key={domain} variant="outline" className="text-xs">
                         {domain}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Enabled Skills */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BrainIcon size={14} />
+                <span className="text-sm">Skills</span>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                {(configuration.enabledSkills ?? []).length === 0 ? (
+                  <Badge variant="secondary" className="text-xs">
+                    None listed
+                  </Badge>
+                ) : (
+                  <div className="flex max-w-[16rem] flex-wrap justify-end gap-1">
+                    {(configuration.enabledSkills ?? []).map((skill) => (
+                      <Badge key={skill} variant="outline" className="text-xs">
+                        {skill}
                       </Badge>
                     ))}
                   </div>

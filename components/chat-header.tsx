@@ -3,11 +3,15 @@
 import { useRouter } from "next/navigation";
 import { memo, useEffect, useState } from "react";
 import { useWindowSize } from "usehooks-ts";
+import { NetSuiteStatusChip } from "@/components/netsuite-status-chip";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PlusIcon } from "./icons";
-import { useSidebar } from "./ui/sidebar";
 import { VisibilitySelector, type VisibilityType } from "./visibility-selector";
+
+/** Sidebar expand/collapse lives in the rail on desktop; header keeps a
+ *  mobile-only trigger so the sheet can open when the rail is off-canvas. */
 
 function PureChatHeader({
   chatId,
@@ -19,7 +23,6 @@ function PureChatHeader({
   isReadonly: boolean;
 }) {
   const router = useRouter();
-  const { open } = useSidebar();
 
   const { width: windowWidth } = useWindowSize();
   const [mounted, setMounted] = useState(false);
@@ -34,7 +37,7 @@ function PureChatHeader({
 
   return (
     <header className="sticky top-0 flex items-center gap-2 bg-background px-2 py-1.5 md:px-2">
-      <SidebarToggle />
+      {isMobile ? <SidebarToggle /> : null}
 
       {!isReadonly && (
         <VisibilitySelector
@@ -54,19 +57,29 @@ function PureChatHeader({
         </span>
       </div>
 
-      {(!open || isMobile) && (
-        <Button
-          className="order-3 ml-auto h-8 px-2 md:order-1 md:ml-0 md:px-2"
-          onClick={() => {
-            router.push("/");
-            router.refresh();
-          }}
-          variant="outline"
-        >
-          <PlusIcon />
-          <span className="md:sr-only">New Chat</span>
-        </Button>
-      )}
+      <div
+        className={cn(
+          "ml-auto flex items-center gap-1.5",
+          "order-3 md:order-4",
+        )}
+      >
+        {!isReadonly ? <NetSuiteStatusChip /> : null}
+        {/* Desktop New Chat lives in the sidebar rail; header + only when the
+            mobile sheet is closed and that control isn't visible. */}
+        {isMobile ? (
+          <Button
+            className="h-8 px-2"
+            onClick={() => {
+              router.push("/");
+              router.refresh();
+            }}
+            variant="outline"
+          >
+            <PlusIcon />
+            <span className="md:sr-only">New Chat</span>
+          </Button>
+        ) : null}
+      </div>
     </header>
   );
 }

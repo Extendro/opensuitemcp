@@ -30,30 +30,6 @@ export const searchDomains: SearchDomain[] = [
     tags: ["oracle", "netsuite", "help", "official"],
     keywords: ["oracle netsuite", "suiteanswers", "netsuite help"],
   },
-  {
-    id: "tim-dietrich-blog",
-    label: "Tim Dietrich Knowledge Base",
-    description:
-      "Deep-dive NetSuite development blogs, tutorials and SuiteQL examples from Tim Dietrich.",
-    hostname: "timdietrich.me",
-    path: "blog",
-    provider: "searxng",
-    tier: "included",
-    tags: ["blog", "netsuite", "suiteql"],
-    keywords: ["tim dietrich", "timdietrich", "dietrich", "tim's blog"],
-  },
-  {
-    id: "folio3-netsuite-blog",
-    label: "Folio3 Knowledge Base",
-    description:
-      "NetSuite blogs and articles by Folio3 from netsuite.folio3.com/blog.",
-    hostname: "netsuite.folio3.com",
-    path: "blog",
-    provider: "searxng",
-    tier: "included",
-    tags: ["blog", "netsuite", "folio3"],
-    keywords: ["folio3", "folio 3", "netsuite folio3", "folio3 blog"],
-  },
 ];
 
 const TRAILING_SLASH_REGEX = /\/+$/;

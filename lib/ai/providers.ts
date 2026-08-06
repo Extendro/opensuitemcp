@@ -3,7 +3,6 @@ import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
-import { createInceptionProvider } from "./custom-providers/inception";
 
 function createGoogleProvider(apiKey?: string) {
   // Create a custom Google provider instance with the API key if provided
@@ -125,12 +124,12 @@ export const myProvider = isTestEnvironment
 /**
  * Create a provider with a user-specific API key
  * @param apiKey - User's API key (encrypted, will be decrypted)
- * @param provider - Provider type: "google", "anthropic", "openai", or "inception"
+ * @param provider - Provider type: "google", "anthropic", or "openai"
  * @throws Error if no API key is provided and env var is not set
  */
 export function getUserProvider(
   apiKey?: string | null,
-  provider: "google" | "anthropic" | "openai" | "inception" = "google",
+  provider: "google" | "anthropic" | "openai" = "google",
 ) {
   if (isTestEnvironment) {
     const { chatModel, reasoningModel, titleModel } = require("./models.mock");
@@ -161,16 +160,6 @@ export function getUserProvider(
     }
 
     return createOpenAIProvider(apiKey);
-  }
-
-  if (provider === "inception") {
-    if (!apiKey) {
-      throw new Error(
-        "API key is required. Please set your API key in Settings.",
-      );
-    }
-
-    return createInceptionProvider(apiKey);
   }
 
   // Default to Google

@@ -1,6 +1,6 @@
 {
   "name": "netsuite-ai-assistant",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
@@ -24,7 +24,6 @@
     "@ai-sdk/gateway": "^1.0.15",
     "@ai-sdk/google": "^3.0.13",
     "@ai-sdk/openai": "^3.0.19",
-    "@ai-sdk/openai-compatible": "^2.0.31",
     "@ai-sdk/provider": "2.0.0",
     "@ai-sdk/react": "^3.0.26",
     "@ai-sdk/xai": "2.0.13",
@@ -33,6 +32,8 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.35.3",
     "@icons-pack/react-simple-icons": "^13.7.0",
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@monaco-editor/react": "^4.7.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.200.0",

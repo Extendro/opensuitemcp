@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getUserSettings } from "@/lib/db/queries";
+import { publicAppUrl } from "@/lib/http/public-origin";
 import { callbackSchema, exchangeCodeForToken } from "@/lib/netsuite/oauth";
 import { saveNetSuiteToken } from "@/lib/netsuite/tokens";
 
@@ -11,9 +13,9 @@ export async function GET(request: Request) {
 
   if (error) {
     return NextResponse.redirect(
-      new URL(
+      publicAppUrl(
         `/?error=netsuite_auth_failed&error_description=${encodeURIComponent(error)}`,
-        request.url,
+        request,
       ),
     );
   }
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
 
   if (!validation.success || !code || !state) {
     return NextResponse.redirect(
-      new URL("/?error=invalid_callback", request.url),
+      publicAppUrl("/?error=invalid_callback", request),
     );
   }
 
@@ -36,13 +38,13 @@ export async function GET(request: Request) {
   // Validate state to prevent CSRF attacks
   if (!storedState || storedState !== state) {
     return NextResponse.redirect(
-      new URL("/?error=state_mismatch", request.url),
+      publicAppUrl("/?error=state_mismatch", request),
     );
   }
 
   if (!storedCodeVerifier || !userId) {
     return NextResponse.redirect(
-      new URL("/?error=missing_session_data", request.url),
+      publicAppUrl("/?error=missing_session_data", request),
     );
   }
 
@@ -55,9 +57,10 @@ export async function GET(request: Request) {
       state,
     });
 
-    // Save tokens to database
+    const settings = await getUserSettings({ userId });
     await saveNetSuiteToken({
       userId,
+      accountId: settings?.netsuiteAccountId ?? null,
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
       expiresIn: tokenResponse.expires_in,
@@ -69,15 +72,15 @@ export async function GET(request: Request) {
     cookieStore.delete("netsuite_user_id");
 
     return NextResponse.redirect(
-      new URL("/?netsuite_connected=true", request.url),
+      publicAppUrl("/?netsuite_connected=true", request),
     );
   } catch (tokenError) {
     const errorMessage =
       tokenError instanceof Error ? tokenError.message : "Unknown error";
     return NextResponse.redirect(
-      new URL(
+      publicAppUrl(
         `/?error=netsuite_token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`,
-        request.url,
+        request,
       ),
     );
   }

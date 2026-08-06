@@ -89,6 +89,7 @@ test.describe
       const sidebarToggleButton = page.getByTestId("sidebar-toggle-button");
       await sidebarToggleButton.click();
 
+      await page.getByTestId("user-nav-button").click();
       const userEmail = page.getByTestId("user-email");
       await expect(userEmail).toContainText("Guest");
     });
@@ -127,8 +128,10 @@ test.describe
       await page.waitForURL("/");
       await expect(page.getByPlaceholder("Send a message...")).toBeVisible();
 
-      const userEmail = await page.getByTestId("user-email");
-      await expect(userEmail).toHaveText(testUser.email);
+      authPage.openSidebar();
+      await page.getByTestId("user-nav-button").click();
+      const userEmail = page.getByTestId("user-email");
+      await expect(userEmail).toContainText(testUser.email);
     });
 
     test("Log out as non-guest user", async () => {
@@ -141,14 +144,18 @@ test.describe
       await authPage.login(testUser.email, testUser.password);
       await page.waitForURL("/");
 
-      const userEmail = await page.getByTestId("user-email");
-      await expect(userEmail).toHaveText(testUser.email);
+      authPage.openSidebar();
+      await page.getByTestId("user-nav-button").click();
+      const userEmail = page.getByTestId("user-email");
+      await expect(userEmail).toContainText(testUser.email);
 
       await page.goto("/api/auth/guest");
       await page.waitForURL("/");
 
-      const updatedUserEmail = await page.getByTestId("user-email");
-      await expect(updatedUserEmail).toHaveText(testUser.email);
+      authPage.openSidebar();
+      await page.getByTestId("user-nav-button").click();
+      const updatedUserEmail = page.getByTestId("user-email");
+      await expect(updatedUserEmail).toContainText(testUser.email);
     });
 
     test("Log out is available for non-guest users", async ({ page }) => {

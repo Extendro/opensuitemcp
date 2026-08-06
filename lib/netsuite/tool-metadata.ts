@@ -22,7 +22,7 @@ export type EnhancedToolMetadata = {
 async function enhanceSingleTool(
   tool: MCPTool,
   userApiKey: string,
-  provider: "google" | "anthropic" | "openai" | "inception",
+  provider: "google" | "anthropic" | "openai",
 ): Promise<EnhancedToolMetadata> {
   const providerInstance = getUserProvider(userApiKey, provider);
 
@@ -107,15 +107,16 @@ export async function enhanceMCPToolsWithAI(
 ): Promise<EnhancedToolMetadata[]> {
   // Get user's API key
   const settings = await getUserSettings({ userId });
-  const provider = settings?.aiProvider ?? ("google" as const);
+  const provider =
+    settings?.aiProvider === "anthropic" || settings?.aiProvider === "openai"
+      ? settings.aiProvider
+      : ("google" as const);
   const apiKeyField =
     provider === "anthropic"
       ? settings?.anthropicApiKey
       : provider === "openai"
         ? settings?.openaiApiKey
-        : provider === "inception"
-          ? settings?.inceptionApiKey
-          : settings?.googleApiKey;
+        : settings?.googleApiKey;
 
   if (!apiKeyField) {
     throw new Error(

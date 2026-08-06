@@ -50,6 +50,20 @@
       "when": 1772604556150,
       "tag": "0006_illegal_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785635400000,
+      "tag": "0007_netsuite_accounts_dcr",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785636000000,
+      "tag": "0008_user_skill_settings",
+      "breakpoints": true
     }
   ]
 }

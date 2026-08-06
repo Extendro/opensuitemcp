@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-sidebar";
+import { PortalShell } from "@/components/portal/portal-shell";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "../(auth)/auth";
 
@@ -25,8 +26,10 @@ export default async function Layout({
 
   return (
     <SidebarProvider defaultOpen={!isCollapsed}>
-      <AppSidebar user={session?.user} />
-      <SidebarInset>{children}</SidebarInset>
+      <PortalShell user={session?.user}>
+        <AppSidebar user={session?.user} />
+        <SidebarInset>{children}</SidebarInset>
+      </PortalShell>
     </SidebarProvider>
   );
 }
