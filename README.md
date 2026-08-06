@@ -1,66 +1,132 @@
-# <img src="./app/icon.svg" alt="OpenSuiteMCP Icon" width="24" height="24" /><span style="font-weight: 200;"> OpenSuite</span>MCP NetSuite AI Assistant
+# <img src="./app/icon.svg" alt="OpenSuiteMCP Icon" width="24" height="24" /> <span style="font-weight: 200;">OpenSuite</span>MCP
 
-An AI-powered chat assistant that integrates with NetSuite via MCP (Model Context Protocol), enabling natural language interactions with your NetSuite data. Built with Next.js, Vercel AI SDK, and supporting multiple AI providers (Google Gemini, Anthropic Claude, and OpenAI GPT).
+Open-source **NetSuite MCP client** — chat UI for NetSuite’s AI Connector Service, MCP Standard Tools, Companion prompt library, and SuiteCloud Agent Skills.
 
-<img src="./docs/screenshot1.png" alt="OpenSuiteMCP Main UI" width="100%" />
+Bring your own LLM keys (**Google Gemini**, **Anthropic Claude**, or **OpenAI GPT**). Self-host for internal use. Commercial rights reserved by [Unstacked Apps, LLC](https://www.unstackedapps.com/).
 
-_Chat interface in dark mode showing the welcome prompt and main UI._
+**Current release:** [v3.0.0](https://github.com/unstackedapps/opensuitemcp/releases/tag/v3.0.0) · [Changelog](CHANGELOG.md)
 
-### NetSuite MCP Tool Integration
+<img src="./docs/screenshot-chat.png" alt="OpenSuiteMCP chat UI" width="100%" />
 
-The assistant seamlessly integrates with NetSuite's MCP tools to execute complex queries and retrieve real-time data directly from your NetSuite instance.
+_Main chat UI._
 
-<img src="./docs/screenshot2.png" alt="NetSuite MCP Tool Usage" width="100%" />
+## What’s in 3.0
 
-_Example query requesting the top ten customers by sales order count, demonstrating the power of NetSuite MCP tool usage in the app._
+- **App Portal** — Chats, Skills, Prompts, AI Provider, NetSuite, Web Search, Timezone, and Account in one panel
+- **SuiteCloud Agent Skills** — Oracle pack + custom `SKILL.md`; toggle into the system prompt per session
+- **Companion Prompt Library** — Browse, fill placeholders, send into chat
+- **NetSuite MCP** — Multi-account connect (DCR), status chip, live tool calls
+- **BYOLLM** — Your API keys; no shared multi-tenant model account in this app
+
+## Skills
+
+Open **Skills** from the App Portal (or the sidebar). Enable Oracle SuiteCloud Agent Skills and/or your own custom skills. Enabled skills are injected into the system prompt for **new** messages — useful for finance analyst workflows, SuiteScript / SDF guidance, OWASP patterns, and more.
+
+Custom skills: add a `SKILL.md`-style document in the portal; toggle it like any Oracle skill.
+
+<img src="./docs/screenshot-skills.png" alt="OpenSuiteMCP Skills panel" width="100%" />
+
+_Skills panel — Oracle pack and custom skills._
+
+Pack source: [oracle/netsuite-suitecloud-sdk — agent-skills](https://github.com/oracle/netsuite-suitecloud-sdk/tree/master/packages/agent-skills)
+
+## Prompts
+
+Open **Prompts** for the Companion SuiteApp library (requires NetSuite connected with Companion available). Filter by category, industry, or role; open a template; fill required placeholders; then use it in chat.
+
+<img src="./docs/screenshot-prompts.png" alt="OpenSuiteMCP Prompts library" width="100%" />
+
+_Companion prompt library — browse and fill-in._
+
+Docs: [Companion SuiteApp](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_9091153093.html)
+
+## NetSuite MCP tools
+
+With AI Connector + MCP Standard Tools connected, chat can run SuiteQL, records, reports, saved searches, and related MCP tools against your account.
+
+<img src="./docs/screenshot-netsuite-tools.png" alt="OpenSuiteMCP NetSuite MCP tools in chat" width="100%" />
+
+_NetSuite MCP tools in a conversation._
+
+## Prerequisites
+
+- Node.js 18+ and [pnpm](https://pnpm.io)
+- PostgreSQL
+- Docker (optional) for local Redis / SearXNG via `pnpm setup:backend`
+- A NetSuite account with:
+  - [AI Connector Service](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_7200233106.html) enabled
+  - [MCP Standard Tools](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_0902023450.html) SuiteApp
+  - [Companion SuiteApp](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_9091153093.html) if you want the prompt library
+- An API key from Google, Anthropic, or OpenAI
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+ and pnpm
-- PostgreSQL database
-- Docker (optional, for local development with SearXNG)
-
-### Setup
-
-1. **Install dependencies:**
+1. **Install dependencies**
 
    ```bash
    pnpm install
    ```
 
-2. **Run automated setup:**
+2. **Run automated setup**
 
    ```bash
    pnpm setup:backend
    ```
 
-   This generates secrets, creates `.env.local`, and optionally starts Docker containers (PostgreSQL, Redis, and SearXNG).
+   Generates secrets, creates `.env.local`, and can start Docker services (PostgreSQL, Redis, SearXNG).
 
-3. **Run database migrations:**
+3. **Migrate the database**
 
    ```bash
    pnpm db:migrate
    ```
 
-4. **Start the development server:**
+4. **Start the dev server**
 
    ```bash
    pnpm dev
    ```
 
-5. **Configure your API key:**
-   - Open the **Settings** modal from the sidebar
+   App: [http://localhost:3000](http://localhost:3000)
 
-- Enter your AI provider API key (Google, Anthropic, or OpenAI)
-- API keys are encrypted and stored securely in your database
+5. **Configure in the App Portal** (sidebar icons open the same portal)
 
-The app will be running at [http://localhost:3000](http://localhost:3000).
+   - **AI Provider** — Choose Google / Anthropic / OpenAI and enter your API key (stored encrypted)
+   - **NetSuite** — Add an account ID, complete Integration / DCR setup, connect
+   - **Skills** — Enable Oracle and/or custom skills for new messages
+   - **Prompts** — Browse Companion templates when NetSuite + Companion are available
 
-## Documentation
+## NetSuite setup (short)
 
-- **[LICENSE](LICENSE)** - Full license terms and usage restrictions
-- **[NOTICE.md](NOTICE.md)** - Usage notice and commercial restrictions
-- **[ATTRIBUTION.md](ATTRIBUTION.md)** - Open source attributions and credits
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+1. In NetSuite, ensure AI Connector and the MCP Standard Tools SuiteApp are available for your account.
+2. In OpenSuiteMCP → **NetSuite**, add your account ID (e.g. `1234567` or `1234567-sb1`).
+3. Follow the in-app Integration instructions (admin once per account), then **Connect**.
+4. Confirm the header status chip shows connected before running SuiteQL / record tools.
+
+Official references:
+
+- [AI Connector Service](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_7200233106.html)
+- [MCP Standard Tools](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_0902023450.html)
+- [Companion SuiteApp](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_9091153093.html)
+- [SuiteCloud Agent Skills](https://github.com/oracle/netsuite-suitecloud-sdk/tree/master/packages/agent-skills)
+
+## Usage limits (optional)
+
+Self-host defaults are generous. Override with env vars if needed:
+
+| Variable | Default (OSS) | Purpose |
+| --- | --- | --- |
+| `MAX_MESSAGES_PER_DAY_REGULAR` | `100` | Signed-in user messages / 24h |
+| `MAX_MESSAGES_PER_DAY_GUEST` | `20` | Guest messages / 24h |
+| `CHAT_BURST_LIMIT_PER_MINUTE` | unset / `0` (off) | Redis burst cap; fail-open if Redis is down |
+
+## License & notices
+
+Self-host and internal use are welcome. **Commercial use of this codebase is reserved by Unstacked Apps, LLC.**
+
+- [LICENSE](LICENSE) — Sustainable Use License
+- [NOTICE.md](NOTICE.md) — Usage notice
+- [ATTRIBUTION.md](ATTRIBUTION.md) — Third-party credits
+- [CHANGELOG.md](CHANGELOG.md) — Release history
+
+Hosted product (separate from this repo): [opensuitemcp.com](https://opensuitemcp.com)
