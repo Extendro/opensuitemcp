@@ -51,8 +51,7 @@ _NetSuite MCP tools in a conversation._
 ## Prerequisites
 
 - Node.js 18+ and [pnpm](https://pnpm.io)
-- PostgreSQL
-- Docker (optional) for local Redis / SearXNG via `pnpm setup:backend`
+- Docker ([Docker Desktop](https://www.docker.com/products/docker-desktop/) on macOS/Windows, or Docker Engine on Linux) for local PostgreSQL, Redis, and SearXNG via `pnpm setup:backend`
 - A NetSuite account with:
   - [AI Connector Service](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_7200233106.html) enabled
   - [MCP Standard Tools](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_0902023450.html) SuiteApp
@@ -73,7 +72,18 @@ _NetSuite MCP tools in a conversation._
    pnpm setup:backend
    ```
 
-   Generates secrets, creates `.env.local`, and can start Docker services (PostgreSQL, Redis, SearXNG).
+   Generates secrets and writes:
+
+   - `.env.local` — app / migrate vars (`POSTGRES_URL`, `REDIS_URL`, auth, etc.)
+   - `docker/.env` — Compose vars (`PROJECT_NAME`, `POSTGRES_PW`, `REDIS_PW`); gitignored
+
+   It can also start Docker services (PostgreSQL, Redis, SearXNG). If Docker was not running during setup, start Docker Desktop/Engine, then:
+
+   ```bash
+   docker compose --env-file docker/.env -f docker/docker-compose.yml -p opensuitemcp up -d
+   ```
+
+   Use your project name instead of `opensuitemcp` if you chose a custom name during setup.
 
 3. **Migrate the database**
 

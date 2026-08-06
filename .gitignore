@@ -36,6 +36,7 @@ yarn-error.log*
 # turbo
 .turbo
 
+# Matches root .env and any path named .env (including docker/.env compose secrets)
 .env
 .vercel
 .env*.local
