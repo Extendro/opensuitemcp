@@ -5,6 +5,44 @@ All notable changes to OpenSuiteMCP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-08-06
+
+### ✨ Added
+
+- **Unified App Portal**
+  - Single Claude-style modal for Chats, Skills, Prompts, AI Provider, NetSuite, Web Search, Timezone, and Account
+  - Consistent panel chrome (compact header, muted subtitle, optional docs links, flat body rows)
+
+- **SuiteCloud Agent Skills**
+  - Oracle skill pack + custom SKILL.md support with per-session enable/disable
+  - Enabled skills injected into the system prompt for new messages
+  - Skills API routes and user skill settings persistence
+
+- **Native Companion Prompt Library**
+  - Browse Companion SuiteApp templates with category / industry / role filters
+  - Placeholder fill-in flow, then send into chat
+
+- **NetSuite MCP connection hardening**
+  - Multi-account management, DCR probe, connect/disconnect, MCP call/resource helpers
+  - Connection status chip and clearer admin Integration instructions
+
+- **Usage protection**
+  - Daily message entitlements configurable via `MAX_MESSAGES_PER_DAY_REGULAR` / `MAX_MESSAGES_PER_DAY_GUEST`
+  - Optional Redis burst limit via `CHAT_BURST_LIMIT_PER_MINUTE` (fail-open when Redis unset)
+
+### 💥 Breaking
+
+- **Inception Labs provider removed** — supported providers are Google (Gemini), Anthropic (Claude), and OpenAI (GPT) with BYOLLM keys
+- **Guest chat on hosted** — commercial overlay requires sign-in (OSS self-host guest path unchanged)
+- **Web search surface narrowed** — Folio3 / Tim Dietrich domain tools removed; NetSuite Help Center search remains
+
+### 🧰 Technical
+
+- Migrations `0007_netsuite_accounts_dcr` and `0008_user_skill_settings`
+- `package.json` version aligned to `3.0.0` (tags remain source of truth for releases)
+
+---
+
 ## [2.6.0] - 2026-03-04
 
 ### ✨ Added
@@ -411,6 +449,7 @@ First stable release of OpenSuiteMCP - an open source, production-ready NetSuite
 
 ---
 
+[3.0.0]: https://github.com/unstackedapps/opensuitemcp/releases/tag/v3.0.0
 [2.6.0]: https://github.com/unstackedapps/opensuitemcp/releases/tag/v2.6.0
 [2.5.0]: https://github.com/unstackedapps/opensuitemcp/releases/tag/v2.5.0
 [2.4.0]: https://github.com/unstackedapps/opensuitemcp/releases/tag/v2.4.0

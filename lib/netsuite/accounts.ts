@@ -1,0 +1,129 @@
+export const NETSUITE_DCR_CLIENT_NAME = "OpenSuiteMCP";
+
+export type NetSuiteAccountEntry = {
+  accountId: string;
+  label: string;
+  clientId?: string | null;
+};
+
+export function normalizeNetSuiteAccountId(accountId: string): string {
+  return accountId.trim().toLowerCase().replace(/_/g, "-");
+}
+
+export function getNetSuiteRedirectUri(): string {
+  const base =
+    process.env.AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
+  return `${base.replace(/\/$/, "")}/api/netsuite/callback`;
+}
+
+/**
+ * Deep link to NetSuite's blank New Integration form.
+ * Query-param prefills do not work: the form is server-rendered POST-only,
+ * uses CSRF, and DCR fields stay disabled until Public Client is checked.
+ */
+export function getNetSuiteNewIntegrationUrl(accountId: string): string {
+  const normalized = normalizeNetSuiteAccountId(accountId);
+  return `https://${normalized}.app.netsuite.com/app/common/integration/integrapp.nl`;
+}
+
+/**
+ * Compact Integration field list for API responses.
+ * Settings UI renders fuller numbered instructions in the help modal.
+ */
+export function getNetSuiteIntegrationChecklist(): string[] {
+  return [
+    `Name — ${NETSUITE_DCR_CLIENT_NAME}`,
+    "Authorization Code Grant — checked",
+    "Public Client — checked",
+    `Redirect URI — ${getNetSuiteRedirectUri()}`,
+    "Scope — NetSuite AI Connector Service (leave other scopes off)",
+    "Dynamic Client Registration — checked",
+    `Dynamic Client Registration Client Name — ${NETSUITE_DCR_CLIENT_NAME}`,
+  ];
+}
+
+export function getNetSuiteAuthorizeHost(accountId: string): string {
+  return `https://${normalizeNetSuiteAccountId(accountId)}.app.netsuite.com`;
+}
+
+export function getNetSuiteApiHost(accountId: string): string {
+  return `https://${normalizeNetSuiteAccountId(accountId)}.suitetalk.api.netsuite.com`;
+}
+
+/** Coerce stored JSON + legacy singular fields into a stable account list. */
+export function resolveNetSuiteAccounts(settings: {
+  netsuiteAccounts?: NetSuiteAccountEntry[] | null;
+  netsuiteAccountId?: string | null;
+  netsuiteClientId?: string | null;
+}): NetSuiteAccountEntry[] {
+  const fromJson = Array.isArray(settings.netsuiteAccounts)
+    ? settings.netsuiteAccounts
+        .filter((entry) => entry?.accountId?.trim())
+        .map((entry) => ({
+          accountId: normalizeNetSuiteAccountId(entry.accountId),
+          label: entry.label?.trim() || normalizeNetSuiteAccountId(entry.accountId),
+          clientId: entry.clientId?.trim() || null,
+        }))
+    : [];
+
+  if (fromJson.length > 0) {
+    return dedupeAccounts(fromJson);
+  }
+
+  if (settings.netsuiteAccountId?.trim()) {
+    const accountId = normalizeNetSuiteAccountId(settings.netsuiteAccountId);
+    return [
+      {
+        accountId,
+        label: accountId,
+        clientId: settings.netsuiteClientId?.trim() || null,
+      },
+    ];
+  }
+
+  return [];
+}
+
+export function dedupeAccounts(
+  accounts: NetSuiteAccountEntry[],
+): NetSuiteAccountEntry[] {
+  const byId = new Map<string, NetSuiteAccountEntry>();
+  for (const account of accounts) {
+    const accountId = normalizeNetSuiteAccountId(account.accountId);
+    const previous = byId.get(accountId);
+    byId.set(accountId, {
+      accountId,
+      label: account.label?.trim() || previous?.label || accountId,
+      clientId: account.clientId?.trim() || previous?.clientId || null,
+    });
+  }
+  return Array.from(byId.values());
+}
+
+export function upsertAccountEntry(
+  accounts: NetSuiteAccountEntry[],
+  entry: NetSuiteAccountEntry,
+): NetSuiteAccountEntry[] {
+  const accountId = normalizeNetSuiteAccountId(entry.accountId);
+  const next = accounts.filter((item) => item.accountId !== accountId);
+  next.push({
+    accountId,
+    label: entry.label?.trim() || accountId,
+    clientId:
+      entry.clientId === undefined
+        ? (accounts.find((item) => item.accountId === accountId)?.clientId ??
+          null)
+        : entry.clientId?.trim() || null,
+  });
+  return next.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export function removeAccountEntry(
+  accounts: NetSuiteAccountEntry[],
+  accountId: string,
+): NetSuiteAccountEntry[] {
+  const normalized = normalizeNetSuiteAccountId(accountId);
+  return accounts.filter((item) => item.accountId !== normalized);
+}

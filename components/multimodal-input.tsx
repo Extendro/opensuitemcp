@@ -22,6 +22,7 @@ import { myProvider } from "@/lib/ai/providers";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { cn } from "@/lib/utils";
+import { BookOpen, Sparkles } from "lucide-react";
 import {
   ArrowUpIcon,
   BrainIcon,
@@ -29,6 +30,7 @@ import {
   StopIcon,
   StopwatchFastIcon,
 } from "./icons";
+import { useAppPortal } from "@/components/portal/context";
 import { Context } from "./message-elements/context";
 import {
   PromptInput,
@@ -42,6 +44,12 @@ import {
 import { toast } from "./toast";
 import { Button } from "./ui/button";
 import { Spinner } from "./ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import type { VisibilityType } from "./visibility-selector";
 
 function PureMultimodalInput({
@@ -76,6 +84,7 @@ function PureMultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const [mounted, setMounted] = useState(false);
+  const { openPortal, registerPromptHandler } = useAppPortal();
 
   useEffect(() => {
     setMounted(true);
@@ -176,6 +185,42 @@ function PureMultimodalInput({
     [usage],
   );
 
+  const openPromptLibrary = useCallback(() => {
+    if (disabled) {
+      toast({
+        type: "error",
+        description: "Connect NetSuite to use the prompt library.",
+      });
+      return;
+    }
+    openPortal("prompts");
+  }, [disabled, openPortal]);
+
+  const handleSelectPrompt = useCallback(
+    (promptText: string) => {
+      if (status === "streaming" || status === "submitted") {
+        setInput(promptText);
+        toast({
+          type: "success",
+          description: "Prompt loaded into the composer.",
+        });
+        return;
+      }
+      sendMessage({
+        role: "user",
+        parts: [{ type: "text", text: promptText }],
+      });
+    },
+    [sendMessage, setInput, status],
+  );
+
+  useEffect(() => {
+    registerPromptHandler(handleSelectPrompt);
+    return () => {
+      registerPromptHandler(null);
+    };
+  }, [handleSelectPrompt, registerPromptHandler]);
+
   return (
     <div className={cn("relative flex w-full flex-col gap-4", className)}>
       <PromptInput
@@ -204,7 +249,7 @@ function PureMultimodalInput({
             maxHeight={200}
             minHeight={44}
             onChange={handleInput}
-            placeholder="Ask me about your NetSuite data"
+            placeholder="Ask Ava anything…"
             ref={(node) => {
               (
                 textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>
@@ -221,6 +266,36 @@ function PureMultimodalInput({
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
             />
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label="Skills"
+                    className="size-8 px-2"
+                    onClick={() => openPortal("skills")}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Sparkles className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Skills</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label="Prompt Library"
+                    className="size-8 px-2"
+                    onClick={openPromptLibrary}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <BookOpen className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Prompt Library</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </PromptInputTools>
 
           <div className="flex items-center gap-2">
@@ -280,7 +355,6 @@ async function fetchSettings() {
       | "google"
       | "anthropic"
       | "openai"
-      | "inception",
   };
 }
 

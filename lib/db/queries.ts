@@ -15,6 +15,7 @@ import {
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import type { VisibilityType } from "@/components/visibility-selector";
+import type { CustomSkill } from "../ai/skills/catalog";
 import { ChatSDKError } from "../errors";
 import type { AppUsage } from "../usage";
 import { generateUUID } from "../utils";
@@ -542,23 +543,35 @@ export async function upsertUserSettings({
   aiProvider,
   netsuiteAccountId,
   netsuiteClientId,
+  netsuiteAccounts,
   timezone,
   searchDomainIds,
   maxIterations,
   customInstructions,
+  enabledSkillIds,
+  customSkills,
 }: {
   userId: string;
   googleApiKey?: string | null;
   anthropicApiKey?: string | null;
   openaiApiKey?: string | null;
   inceptionApiKey?: string | null;
-  aiProvider?: "google" | "anthropic" | "openai" | "inception" | null;
+  aiProvider?: "google" | "anthropic" | "openai" | null;
   netsuiteAccountId?: string | null;
   netsuiteClientId?: string | null;
+  netsuiteAccounts?:
+    | {
+        accountId: string;
+        label: string;
+        clientId?: string | null;
+      }[]
+    | null;
   timezone?: string | null;
   searchDomainIds?: string[] | null;
   maxIterations?: string | null;
   customInstructions?: string | null;
+  enabledSkillIds?: string[] | null;
+  customSkills?: CustomSkill[] | null;
 }): Promise<UserSettings> {
   try {
     const now = new Date();
@@ -597,6 +610,10 @@ export async function upsertUserSettings({
             netsuiteClientId !== undefined
               ? netsuiteClientId
               : existing.netsuiteClientId,
+          netsuiteAccounts:
+            netsuiteAccounts !== undefined
+              ? (netsuiteAccounts ?? [])
+              : (existing.netsuiteAccounts ?? []),
           timezone: timezone !== undefined ? timezone : existing.timezone,
           searchDomainIds:
             searchDomainIds !== undefined
@@ -610,6 +627,14 @@ export async function upsertUserSettings({
             customInstructions !== undefined
               ? customInstructions
               : existing.customInstructions,
+          enabledSkillIds:
+            enabledSkillIds !== undefined
+              ? (enabledSkillIds ?? [])
+              : (existing.enabledSkillIds ?? []),
+          customSkills:
+            customSkills !== undefined
+              ? (customSkills ?? [])
+              : (existing.customSkills ?? []),
           updatedAt: now,
         })
         .where(eq(userSettings.userId, userId))
@@ -630,10 +655,13 @@ export async function upsertUserSettings({
         aiProvider: aiProvider ?? "google",
         netsuiteAccountId: netsuiteAccountId ?? null,
         netsuiteClientId: netsuiteClientId ?? null,
+        netsuiteAccounts: netsuiteAccounts ?? [],
         timezone: timezone ?? "UTC",
         searchDomainIds: searchDomainIds ?? [],
         maxIterations: maxIterations ?? "10",
         customInstructions: customInstructions ?? null,
+        enabledSkillIds: enabledSkillIds ?? [],
+        customSkills: customSkills ?? [],
         createdAt: now,
         updatedAt: now,
       })

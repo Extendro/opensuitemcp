@@ -15,17 +15,20 @@ import { getUsage } from "tokenlens/helpers";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { generateTitleFromUserMessage } from "@/app/(chat)/actions";
 import type { VisibilityType } from "@/components/visibility-selector";
-import { extractDiffusionContent } from "@/lib/ai/custom-providers/inception";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
+import { allowChatBurst } from "@/lib/rate-limit";
 import type { ChatModel } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getUserProvider } from "@/lib/ai/providers";
 import { searchDomains } from "@/lib/ai/search-domains";
+import {
+  buildSkillsPromptSection,
+  listEnabledSkillNames,
+  normalizeUserSkillSettings,
+} from "@/lib/ai/skills/catalog";
 import { createGetCurrentConfigTool } from "@/lib/ai/tools/get-current-config";
 import { createReadWebpageTool } from "@/lib/ai/tools/read-webpage";
-import { createSearchFolio3Tool } from "@/lib/ai/tools/search-folio3";
 import { createSearchNetsuiteDocsTool } from "@/lib/ai/tools/search-netsuite-docs";
-import { createSearchTimDietrichTool } from "@/lib/ai/tools/search-tim-dietrich";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
@@ -50,39 +53,13 @@ import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
 export const maxDuration = 60;
 
-const isInceptionReasoningModel = (
-  provider: string,
-  modelId: string,
-): boolean => provider === "inception" && modelId === "chat-model-reasoning";
+type AiProvider = "google" | "anthropic" | "openai";
 
-function injectDiffusionIntoLastAssistantMessage<
-  T extends { role: string; parts?: Array<{ type?: string }> },
->(messages: T[], lastDiffusionText: string): T[] {
-  return messages.map((currentMessage, index) => {
-    const isLastMessage = index === messages.length - 1;
-    const isAssistant = currentMessage.role === "assistant";
-    if (!isLastMessage || !isAssistant) {
-      return currentMessage;
-    }
-
-    const hasDiffusionPart = currentMessage.parts?.some(
-      (part) => part.type === "diffusion",
-    );
-    const nonTextParts =
-      currentMessage.parts?.filter((part) => part.type !== "text") ?? [];
-    const diffusionParts = hasDiffusionPart
-      ? []
-      : [{ type: "diffusion", text: lastDiffusionText }];
-
-    return {
-      ...currentMessage,
-      parts: [
-        ...diffusionParts,
-        ...nonTextParts,
-        { type: "text", text: lastDiffusionText },
-      ],
-    } as T;
-  });
+function normalizeAiProvider(provider: string | null | undefined): AiProvider {
+  if (provider === "anthropic" || provider === "openai") {
+    return provider;
+  }
+  return "google";
 }
 
 const getTokenlensCatalog = cache(
@@ -132,6 +109,14 @@ export async function POST(request: Request) {
 
     const userType: UserType = session.user.type;
 
+    const burstAllowed = await allowChatBurst(session.user.id);
+    if (!burstAllowed) {
+      return new ChatSDKError(
+        "rate_limit:chat",
+        "Too many messages in a short period. Wait a minute and try again.",
+      ).toResponse();
+    }
+
     const messageCount = await getMessageCountByUserId({
       id: session.user.id,
       differenceInHours: 24,
@@ -153,25 +138,17 @@ export async function POST(request: Request) {
     } else {
       // Get user API key and provider for title generation
       let titleApiKey: string | null = null;
-      let titleProvider: "google" | "anthropic" | "openai" | "inception" =
-        "google";
+      let titleProvider: AiProvider = "google";
       if (session.user?.id) {
         try {
           const settings = await getUserSettings({ userId: session.user.id });
-          titleProvider =
-            (settings?.aiProvider as
-              | "google"
-              | "anthropic"
-              | "openai"
-              | "inception") || "google";
+          titleProvider = normalizeAiProvider(settings?.aiProvider);
           const apiKeyField =
             titleProvider === "anthropic"
               ? settings?.anthropicApiKey
               : titleProvider === "openai"
                 ? settings?.openaiApiKey
-                : titleProvider === "inception"
-                  ? settings?.inceptionApiKey
-                  : settings?.googleApiKey;
+                : settings?.googleApiKey;
           if (apiKeyField) {
             titleApiKey = decrypt(apiKeyField);
           }
@@ -224,21 +201,19 @@ export async function POST(request: Request) {
     let finalMergedUsage: AppUsage | undefined;
     let hasErrorOccurred: boolean = false;
 
-    let lastDiffusionText: string | undefined;
     const stream = createUIMessageStream({
       execute: async ({ writer: dataStream }) => {
         try {
           // Get user settings (API key, provider, timezone, and maxIterations)
           let userApiKey: string | null = null;
-          let userProviderType:
-            | "google"
-            | "anthropic"
-            | "openai"
-            | "inception" = "google";
+          let userProviderType: AiProvider = "google";
           let userTimezone = "UTC";
           let userMaxIterations = 10; // Default to 10
           let selectedSearchDomainIds: string[] = [];
-          let customInstructions: string | null = null;
+          let skillsPromptSection = "";
+          let enabledSkillNames: string[] = [
+            "AI Connector Instructions (always on)",
+          ];
           if (session.user?.id) {
             try {
               const settings = await getUserSettings({
@@ -251,16 +226,10 @@ export async function POST(request: Request) {
                 hasGoogleKey: !!settings?.googleApiKey,
                 hasAnthropicKey: !!settings?.anthropicApiKey,
                 hasOpenAIKey: !!settings?.openaiApiKey,
-                hasInceptionKey: !!settings?.inceptionApiKey,
                 maxIterations: settings?.maxIterations,
               });
               if (settings) {
-                userProviderType =
-                  (settings.aiProvider as
-                    | "google"
-                    | "anthropic"
-                    | "openai"
-                    | "inception") || "google";
+                userProviderType = normalizeAiProvider(settings.aiProvider);
                 // Parse maxIterations, default to 10 if invalid
                 const maxIterationsValue = settings.maxIterations
                   ? Number.parseInt(settings.maxIterations, 10)
@@ -278,9 +247,7 @@ export async function POST(request: Request) {
                     ? settings.anthropicApiKey
                     : userProviderType === "openai"
                       ? settings.openaiApiKey
-                      : userProviderType === "inception"
-                        ? settings.inceptionApiKey
-                        : settings.googleApiKey;
+                      : settings.googleApiKey;
 
                 if (apiKeyField) {
                   try {
@@ -306,9 +273,23 @@ export async function POST(request: Request) {
                 }
                 userTimezone = settings.timezone ?? "UTC";
                 selectedSearchDomainIds = settings.searchDomainIds ?? [];
-                if (settings.customInstructions?.trim()) {
-                  customInstructions = settings.customInstructions;
-                }
+                const skillSettings = normalizeUserSkillSettings(
+                  {
+                    enabledSkillIds: settings.enabledSkillIds ?? [],
+                    customSkills: settings.customSkills ?? [],
+                  },
+                  settings.customInstructions,
+                );
+                skillsPromptSection = buildSkillsPromptSection(skillSettings);
+                enabledSkillNames = listEnabledSkillNames(skillSettings);
+                console.log("[Skills] Session skills:", {
+                  enabledIds: skillSettings.enabledSkillIds,
+                  enabledNames: enabledSkillNames,
+                  customCount: skillSettings.customSkills.filter(
+                    (skill) => skill.enabled !== false,
+                  ).length,
+                  injectedChars: skillsPromptSection.length,
+                });
               } else {
                 console.log(
                   "[Settings] No settings found for user:",
@@ -338,9 +319,7 @@ export async function POST(request: Request) {
                 ? "Anthropic"
                 : userProviderType === "openai"
                   ? "OpenAI"
-                  : userProviderType === "inception"
-                    ? "Inception Labs"
-                    : "Google";
+                  : "Google";
             const errorMessage =
               error instanceof Error
                 ? error.message
@@ -383,15 +362,6 @@ export async function POST(request: Request) {
               createSearchNetsuiteDocsTool(),
             ]);
           }
-          if (enabledSearchDomainIds.has("tim-dietrich-blog")) {
-            searchToolEntries.push([
-              "searchTimDietrich",
-              createSearchTimDietrichTool(),
-            ]);
-          }
-          if (enabledSearchDomainIds.has("folio3-netsuite-blog")) {
-            searchToolEntries.push(["searchFolio3", createSearchFolio3Tool()]);
-          }
           const searchTools = Object.fromEntries(searchToolEntries);
 
           // Merge base tools with NetSuite tools
@@ -418,17 +388,19 @@ export async function POST(request: Request) {
             ...netsuiteToolNames,
           ];
 
-          const systemPromptText = systemPrompt({
+          const systemPromptText = `${systemPrompt({
             selectedChatModel,
             requestHints,
             netsuiteTools: netsuiteToolNames,
             timezone: userTimezone,
             enabledSearchToolNames: Object.keys(searchTools),
             maxSteps: userMaxIterations,
-            additionalInstructions: customInstructions,
-          });
+          })}${skillsPromptSection}`;
           console.log(
-            `[NetSuite] System prompt includes ${netsuiteToolNames.length} NetSuite tools`,
+            `[NetSuite] System prompt includes ${netsuiteToolNames.length} NetSuite tools` +
+              (skillsPromptSection
+                ? ` + ${skillsPromptSection.length} chars of skills`
+                : ""),
           );
 
           // Both providers use the same model keys (chat-model, chat-model-reasoning, title-model)
@@ -445,6 +417,7 @@ export async function POST(request: Request) {
               enabledSearchDomains: searchDomains
                 .filter((d) => enabledSearchDomainIds.has(d.id))
                 .map((d) => d.label),
+              enabledSkills: enabledSkillNames,
             }),
           };
 
@@ -487,12 +460,6 @@ export async function POST(request: Request) {
           try {
             // AI SDK 6: convertToModelMessages is now async
             const modelMessages = await convertToModelMessages(uiMessages);
-            if (isInceptionReasoningModel(userProviderType, modelId)) {
-              dataStream.write({
-                type: "data-diffusion",
-                data: { text: "" },
-              });
-            }
             result = streamText({
               model: languageModel,
               system: systemPromptText,
@@ -500,10 +467,6 @@ export async function POST(request: Request) {
               stopWhen: stepCountIs(userMaxIterations),
               experimental_activeTools: activeTools as never,
               experimental_transform: smoothStream({ chunking: "word" }),
-              includeRawChunks: isInceptionReasoningModel(
-                userProviderType,
-                modelId,
-              ),
               tools: allToolsWithConfig,
               // Apply reasoning/thinking config based on provider
               // Both use similar token budgets (4K) for thinking/reasoning
@@ -540,78 +503,12 @@ export async function POST(request: Request) {
                             },
                           },
                         }
-                      : userProviderType === "inception"
-                        ? {
-                            providerOptions: {
-                              // Inception Labs reasoning configuration for Mercury 2
-                              inception: {
-                                diffusing: true,
-                                reasoningEffort: "high",
-                                reasoning_summary: true,
-                                // false = stream diffusion/reasoning as it’s produced; true = wait until complete (adds latency)
-                                reasoning_summary_wait: false,
-                              },
-                            },
-                          }
-                        : {})),
+                      : {})),
               experimental_telemetry: {
                 isEnabled: isProductionEnvironment,
                 functionId: "stream-text",
               },
-              onChunk: isInceptionReasoningModel(userProviderType, modelId)
-                ? ({ chunk }) => {
-                    if (chunk.type !== "raw") {
-                      return;
-                    }
-
-                    const nextDiffusionText = extractDiffusionContent(
-                      chunk.rawValue,
-                    );
-                    if (!nextDiffusionText) {
-                      return;
-                    }
-
-                    lastDiffusionText = nextDiffusionText;
-                    dataStream.write({
-                      type: "data-diffusion",
-                      data: { text: nextDiffusionText },
-                    });
-                  }
-                : undefined,
               onFinish: async ({ usage, steps }) => {
-                const lastStep = steps?.at(-1);
-                const inceptionReasoningSummary = isInceptionReasoningModel(
-                  userProviderType,
-                  modelId,
-                )
-                  ? (
-                      lastStep?.providerMetadata as
-                        | {
-                            inception?: { reasoningSummary?: string };
-                          }
-                        | undefined
-                    )?.inception?.reasoningSummary
-                  : undefined;
-                const hasReasoning = Boolean(lastStep?.reasoningText);
-
-                if (inceptionReasoningSummary && !hasReasoning) {
-                  const reasoningId = generateUUID();
-                  dataStream.write({
-                    type: "reasoning-start",
-                    id: reasoningId,
-                  });
-                  dataStream.write({
-                    type: "reasoning-delta",
-                    id: reasoningId,
-                    delta: inceptionReasoningSummary,
-                  });
-                  dataStream.write({
-                    type: "reasoning-end",
-                    id: reasoningId,
-                  });
-                }
-
-                // Check if we hit the max iterations limit (exactly equals, not >=)
                 const stepCount = steps?.length ?? 0;
                 console.log(
                   "[Chat] Stream finished, step count:",
@@ -691,8 +588,7 @@ export async function POST(request: Request) {
             userProviderType === "google" ||
             userProviderType === "anthropic" ||
             (userProviderType === "openai" &&
-              modelId === "chat-model-reasoning") ||
-            isInceptionReasoningModel(userProviderType, modelId);
+              modelId === "chat-model-reasoning");
 
           // Merge the UI message stream directly - max steps detection happens in onFinish callback
           dataStream.merge(
@@ -715,12 +611,7 @@ export async function POST(request: Request) {
           return;
         }
 
-        const messagesWithDiffusion = lastDiffusionText?.trim().length
-          ? injectDiffusionIntoLastAssistantMessage(messages, lastDiffusionText)
-          : messages;
-
-        // Filter out empty messages (messages with no parts or empty text parts)
-        const validMessages = messagesWithDiffusion
+        const validMessages = messages
           .filter((currentMessage) => {
             // Check if message has parts
             if (!currentMessage.parts || currentMessage.parts.length === 0) {

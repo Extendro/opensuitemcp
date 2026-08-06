@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
+import { getUserSettings } from "@/lib/db/queries";
+import {
+  normalizeNetSuiteAccountId,
+  resolveNetSuiteAccounts,
+} from "@/lib/netsuite/accounts";
 import { loadNetSuiteMCPTools } from "@/lib/netsuite/mcp";
 import { getNetSuiteToken } from "@/lib/netsuite/tokens";
 
@@ -10,10 +15,15 @@ export async function GET() {
     return NextResponse.json({ connected: false }, { status: 401 });
   }
 
+  const settings = await getUserSettings({ userId: session.user.id });
+  const accounts = resolveNetSuiteAccounts(settings ?? {});
+  const activeAccountId = settings?.netsuiteAccountId
+    ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+    : (accounts[0]?.accountId ?? null);
+
   const accessToken = await getNetSuiteToken(session.user.id);
   const isConnected = !!accessToken;
 
-  // Also check if tools are available
   let toolCount = 0;
   if (isConnected) {
     try {
@@ -27,5 +37,7 @@ export async function GET() {
   return NextResponse.json({
     connected: isConnected,
     toolCount,
+    activeAccountId,
+    accounts,
   });
 }

@@ -1,20 +1,38 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
+import { normalizeUserSkillSettings } from "@/lib/ai/skills/catalog";
 import { getUserSettings, upsertUserSettings } from "@/lib/db/queries";
 import { decrypt, encrypt } from "@/lib/encryption";
+import {
+  normalizeNetSuiteAccountId,
+  resolveNetSuiteAccounts,
+} from "@/lib/netsuite/accounts";
+
+const aiProviderSchema = z.enum(["google", "anthropic", "openai"]);
+
+const netsuiteAccountSchema = z.object({
+  accountId: z.string().min(1).max(64),
+  label: z.string().max(64),
+  clientId: z.string().max(128).optional().nullable(),
+});
+
+const customSkillSchema = z.object({
+  id: z.string().min(1).max(128),
+  name: z.string().max(200),
+  content: z.string().max(32_000),
+  updatedAt: z.string().optional(),
+  enabled: z.boolean().optional(),
+});
 
 const settingsSchema = z.object({
   googleApiKey: z.string().optional().nullable(),
   anthropicApiKey: z.string().optional().nullable(),
   openaiApiKey: z.string().optional().nullable(),
-  inceptionApiKey: z.string().optional().nullable(),
-  aiProvider: z
-    .enum(["google", "anthropic", "openai", "inception"])
-    .optional()
-    .nullable(),
+  aiProvider: aiProviderSchema.optional().nullable(),
   netsuiteAccountId: z.string().max(64).optional().nullable(),
   netsuiteClientId: z.string().max(128).optional().nullable(),
+  netsuiteAccounts: z.array(netsuiteAccountSchema).max(20).optional().nullable(),
   timezone: z.string().max(64).optional().nullable(),
   searchDomainIds: z.array(z.string()).max(16).optional().nullable(),
   maxIterations: z
@@ -28,7 +46,52 @@ const settingsSchema = z.object({
     .optional()
     .nullable(),
   customInstructions: z.string().max(32_000).optional().nullable(),
+  enabledSkillIds: z.array(z.string().max(128)).max(64).optional().nullable(),
+  customSkills: z.array(customSkillSchema).max(32).optional().nullable(),
 });
+
+function normalizeAiProvider(
+  value: string | null | undefined,
+): "google" | "anthropic" | "openai" {
+  if (value === "google" || value === "anthropic" || value === "openai") {
+    return value;
+  }
+  return "google";
+}
+
+function resolveSkillSettings(
+  settings: Awaited<ReturnType<typeof getUserSettings>>,
+) {
+  return normalizeUserSkillSettings(
+    settings
+      ? {
+          enabledSkillIds: settings.enabledSkillIds ?? [],
+          customSkills: settings.customSkills ?? [],
+        }
+      : null,
+    settings?.customInstructions,
+  );
+}
+
+function shouldPersistLegacySkillMigration(
+  settings: NonNullable<Awaited<ReturnType<typeof getUserSettings>>>,
+  normalized: ReturnType<typeof normalizeUserSkillSettings>,
+): boolean {
+  const legacy = settings.customInstructions?.trim();
+  if (!legacy) {
+    return false;
+  }
+  if (
+    settings.customSkills?.some(
+      (skill) => skill.id === "migrated-custom-instructions",
+    )
+  ) {
+    return false;
+  }
+  return normalized.customSkills.some(
+    (skill) => skill.id === "migrated-custom-instructions",
+  );
+}
 
 export async function GET() {
   const session = await auth();
@@ -44,23 +107,25 @@ export async function GET() {
       hasGoogleKey: !!settings?.googleApiKey,
       hasAnthropicKey: !!settings?.anthropicApiKey,
       hasOpenAIKey: !!settings?.openaiApiKey,
-      hasInceptionKey: !!settings?.inceptionApiKey,
       aiProvider: settings?.aiProvider,
     });
 
     if (!settings) {
+      const emptySkills = resolveSkillSettings(null);
       return NextResponse.json({
         googleApiKey: null,
         anthropicApiKey: null,
         openaiApiKey: null,
-        inceptionApiKey: null,
         aiProvider: "google",
         netsuiteAccountId: null,
         netsuiteClientId: null,
+        netsuiteAccounts: [],
         timezone: "UTC",
         searchDomainIds: [],
         maxIterations: "10",
         customInstructions: null,
+        enabledSkillIds: emptySkills.enabledSkillIds,
+        customSkills: emptySkills.customSkills,
       });
     }
 
@@ -113,55 +178,57 @@ export async function GET() {
       console.log("[Settings API] No OpenAI key in DB");
     }
 
-    let decryptedInceptionKey: string | null = null;
-    if (settings.inceptionApiKey) {
+    const provider = normalizeAiProvider(settings.aiProvider);
+    const netsuiteAccounts = resolveNetSuiteAccounts(settings);
+    const activeAccountId = settings.netsuiteAccountId
+      ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+      : (netsuiteAccounts[0]?.accountId ?? null);
+    const activeAccount = netsuiteAccounts.find(
+      (account) => account.accountId === activeAccountId,
+    );
+
+    const skillSettings = resolveSkillSettings(settings);
+
+    if (shouldPersistLegacySkillMigration(settings, skillSettings)) {
       try {
-        decryptedInceptionKey = decrypt(settings.inceptionApiKey);
-        console.log("[Settings API] Successfully decrypted Inception key");
+        await upsertUserSettings({
+          userId: session.user.id,
+          enabledSkillIds: skillSettings.enabledSkillIds,
+          customSkills: skillSettings.customSkills,
+        });
       } catch (error) {
-        console.error(
-          "[Settings API] Error decrypting Inception API key on GET:",
+        console.warn(
+          "[Settings API] Failed to persist legacy skill migration:",
           error,
         );
-        decryptedInceptionKey = null;
       }
-    } else {
-      console.log("[Settings API] No Inception key in DB");
     }
-
-    // Ensure aiProvider is always a valid value
-    const provider =
-      settings.aiProvider === "google" ||
-      settings.aiProvider === "anthropic" ||
-      settings.aiProvider === "openai" ||
-      settings.aiProvider === "inception"
-        ? settings.aiProvider
-        : "google";
 
     const response = {
       googleApiKey: decryptedGoogleKey,
       anthropicApiKey: decryptedAnthropicKey,
       openaiApiKey: decryptedOpenAIKey,
-      inceptionApiKey: decryptedInceptionKey,
       aiProvider: provider,
-      netsuiteAccountId: settings.netsuiteAccountId,
-      netsuiteClientId: settings.netsuiteClientId,
+      netsuiteAccountId: activeAccountId,
+      netsuiteClientId:
+        activeAccount?.clientId ?? settings.netsuiteClientId ?? null,
+      netsuiteAccounts,
       timezone: settings.timezone ?? "UTC",
       searchDomainIds: settings.searchDomainIds ?? [],
       maxIterations: settings.maxIterations ?? "10",
       customInstructions: settings.customInstructions ?? null,
+      enabledSkillIds: skillSettings.enabledSkillIds,
+      customSkills: skillSettings.customSkills,
     };
 
     console.log("[Settings API] Sending response:", {
       hasGoogleKey: !!response.googleApiKey,
       hasAnthropicKey: !!response.anthropicApiKey,
       hasOpenAIKey: !!response.openaiApiKey,
-      hasInceptionKey: !!response.inceptionApiKey,
       aiProvider: response.aiProvider,
       googleKeyLength: response.googleApiKey?.length ?? 0,
       anthropicKeyLength: response.anthropicApiKey?.length ?? 0,
       openaiKeyLength: response.openaiApiKey?.length ?? 0,
-      inceptionKeyLength: response.inceptionApiKey?.length ?? 0,
     });
 
     return NextResponse.json(response);
@@ -263,42 +330,81 @@ export async function POST(request: Request) {
       encryptedOpenAIKey = existing.openaiApiKey;
     }
 
-    // Encrypt Inception API key if provided
-    let encryptedInceptionKey: string | null | undefined;
-    if (validated.inceptionApiKey !== undefined) {
-      const trimmedKey = validated.inceptionApiKey?.trim();
-      if (trimmedKey) {
-        try {
-          encryptedInceptionKey = encrypt(trimmedKey);
-        } catch (error) {
-          console.error(
-            "[Settings] Error encrypting Inception API key:",
-            error,
-          );
-          return NextResponse.json(
-            {
-              error:
-                "Failed to encrypt Inception API key. Please check ENCRYPTION_KEY environment variable.",
-            },
-            { status: 500 },
-          );
-        }
-      } else {
-        encryptedInceptionKey = null;
+    const nextProvider =
+      validated.aiProvider !== undefined
+        ? normalizeAiProvider(validated.aiProvider)
+        : undefined;
+
+    const nextAccounts =
+      validated.netsuiteAccounts !== undefined
+        ? resolveNetSuiteAccounts({
+            netsuiteAccounts: validated.netsuiteAccounts ?? [],
+          })
+        : undefined;
+
+    let nextAccountId =
+      validated.netsuiteAccountId !== undefined
+        ? validated.netsuiteAccountId
+          ? normalizeNetSuiteAccountId(validated.netsuiteAccountId)
+          : null
+        : undefined;
+
+    let nextClientId =
+      validated.netsuiteClientId !== undefined
+        ? validated.netsuiteClientId
+        : undefined;
+
+    if (nextAccounts) {
+      if (
+        nextAccountId &&
+        !nextAccounts.some((account) => account.accountId === nextAccountId)
+      ) {
+        nextAccountId = nextAccounts[0]?.accountId ?? null;
       }
-    } else if (existing?.inceptionApiKey) {
-      encryptedInceptionKey = existing.inceptionApiKey;
+      if (!nextAccountId && nextAccounts[0]) {
+        nextAccountId = nextAccounts[0].accountId;
+      }
+      const active = nextAccounts.find(
+        (account) => account.accountId === nextAccountId,
+      );
+      if (active && nextClientId === undefined) {
+        nextClientId = active.clientId ?? null;
+      }
     }
+
+    const nextCustomSkills =
+      validated.customSkills !== undefined
+        ? normalizeUserSkillSettings({
+            enabledSkillIds:
+              validated.enabledSkillIds ??
+              existing?.enabledSkillIds ??
+              [],
+            customSkills: validated.customSkills ?? [],
+          }).customSkills
+        : undefined;
+
+    const nextEnabledSkillIds =
+      validated.enabledSkillIds !== undefined
+        ? normalizeUserSkillSettings({
+            enabledSkillIds: validated.enabledSkillIds ?? [],
+            customSkills:
+              nextCustomSkills ??
+              existing?.customSkills ??
+              [],
+          }).enabledSkillIds
+        : undefined;
 
     await upsertUserSettings({
       userId: session.user.id,
       googleApiKey: encryptedGoogleKey,
       anthropicApiKey: encryptedAnthropicKey,
       openaiApiKey: encryptedOpenAIKey,
-      inceptionApiKey: encryptedInceptionKey,
-      aiProvider: validated.aiProvider,
-      netsuiteAccountId: validated.netsuiteAccountId,
-      netsuiteClientId: validated.netsuiteClientId,
+      // Clear legacy Inception key when settings are saved
+      inceptionApiKey: null,
+      aiProvider: nextProvider,
+      netsuiteAccountId: nextAccountId,
+      netsuiteClientId: nextClientId,
+      netsuiteAccounts: nextAccounts,
       timezone: validated.timezone,
       searchDomainIds:
         validated.searchDomainIds !== undefined
@@ -306,6 +412,8 @@ export async function POST(request: Request) {
           : undefined,
       maxIterations: validated.maxIterations,
       customInstructions: validated.customInstructions,
+      enabledSkillIds: nextEnabledSkillIds,
+      customSkills: nextCustomSkills,
     });
 
     return NextResponse.json({

@@ -16,23 +16,28 @@ export const Greeting = ({ children }: { children?: ReactNode }) => {
 
   return (
     <div
-      className="mx-auto flex w-full max-w-4xl flex-col items-center px-0 md:px-4"
+      className="mx-auto flex w-full max-w-2xl flex-col items-center px-0 md:px-4"
       key="overview"
     >
       <motion.div
         animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
-        className="pointer-events-none flex select-none flex-row items-center gap-2 font-semibold text-3xl"
+        className="pointer-events-none flex select-none flex-row items-center gap-3 text-center"
         exit={{ opacity: 0, y: 10 }}
         initial={shouldAnimate ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5 }}
       >
-        <OpenSuiteMCPLogo size={32} />
-        Hello there, I'm Ava!
+        <OpenSuiteMCPLogo size={36} />
+        <span
+          className="font-light text-3xl tracking-tight md:text-4xl"
+          style={{ fontFamily: "var(--font-raleway)" }}
+        >
+          Your <span className="font-semibold">NetSuite</span> AI Assistant
+        </span>
       </motion.div>
       {children && (
         <motion.div
           animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
-          className="mt-4 w-full"
+          className="mt-6 w-full"
           exit={{ opacity: 0, y: 10 }}
           initial={shouldAnimate ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
           transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.6 }}

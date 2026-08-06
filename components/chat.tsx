@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
@@ -60,8 +60,6 @@ export function Chat({
 
   const [input, setInput] = useState<string>("");
   const [usage, setUsage] = useState<AppUsage | undefined>(initialLastContext);
-  const [diffusionText, setDiffusionText] = useState<string | undefined>();
-  const [hasDiffusion, setHasDiffusion] = useState(false);
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const [maxIterationsReached, setMaxIterationsReached] = useState(
@@ -69,7 +67,6 @@ export function Chat({
   );
   const currentModelIdRef = useRef(currentModelId);
   const errorOccurredRef = useRef(false);
-  const diffusionTextRef = useRef<string | undefined>(undefined);
 
   // Update refs when values change (these are used inside transport callbacks)
   useEffect(() => {
@@ -121,21 +118,8 @@ export function Chat({
       if (dataPart.type === "data-usage") {
         setUsage(dataPart.data);
       }
-      if (dataPart.type === "data-diffusion") {
-        const nextText = dataPart.data.text;
-        setHasDiffusion(true);
-        if (nextText.trim().length > 0) {
-          setDiffusionText(nextText);
-          diffusionTextRef.current = nextText;
-        }
-      }
     },
     onFinish: async () => {
-      if (hasDiffusion && !diffusionTextRef.current?.trim().length) {
-        setHasDiffusion(false);
-        setDiffusionText(undefined);
-        diffusionTextRef.current = undefined;
-      }
       mutate(unstable_serialize(getChatHistoryPaginationKey));
       // Check if maxIterationsReached flag was set after stream completes.
       // Brief delay so server's onFinish has time to write the flag (avoids race).
@@ -283,62 +267,6 @@ export function Chat({
     },
   });
 
-  const onDiffusionComplete = useCallback(
-    (duration: number) => {
-      const finalDiffusionText = diffusionTextRef.current;
-      if (!finalDiffusionText?.trim().length) {
-        setHasDiffusion(false);
-        setDiffusionText(undefined);
-        diffusionTextRef.current = undefined;
-        return;
-      }
-      setMessages((prevMessages) => {
-        const lastAssistantIndex = prevMessages.findLastIndex(
-          (msg) => msg.role === "assistant",
-        );
-        if (lastAssistantIndex === -1) {
-          return prevMessages;
-        }
-
-        const lastAssistant = prevMessages[lastAssistantIndex];
-        const nonTextParts =
-          lastAssistant.parts?.filter(
-            (part) => (part as { type?: string }).type !== "text",
-          ) ?? [];
-        const hasDiffusionPart = nonTextParts.some(
-          (part) => (part as { type?: string }).type === "diffusion",
-        );
-        const updatedNonTextParts = nonTextParts.map((part) => {
-          const partWithType = part as { type?: string; text?: string };
-          if (partWithType.type === "diffusion") {
-            return { ...partWithType, text: finalDiffusionText, duration };
-          }
-          return part;
-        }) as ChatMessage["parts"];
-        const diffusionPart = {
-          type: "diffusion",
-          text: finalDiffusionText,
-          duration,
-        } as unknown as ChatMessage["parts"][number];
-        const updatedMessages = [...prevMessages];
-        updatedMessages[lastAssistantIndex] = {
-          ...lastAssistant,
-          parts: [
-            ...(hasDiffusionPart
-              ? updatedNonTextParts
-              : [diffusionPart, ...updatedNonTextParts]),
-            { type: "text", text: finalDiffusionText },
-          ] as ChatMessage["parts"],
-        };
-        return updatedMessages;
-      });
-      setHasDiffusion(false);
-      setDiffusionText(undefined);
-      diffusionTextRef.current = undefined;
-    },
-    [setMessages],
-  );
-
   // Reset error flag when a new message is submitted (status becomes "submitted")
   // This ensures the error state doesn't interfere with the next message
   useEffect(() => {
@@ -351,32 +279,6 @@ export function Chat({
       errorOccurredRef.current = false;
     }
   }, [status]);
-
-  useEffect(() => {
-    if (status === "submitted") {
-      setDiffusionText(undefined);
-      diffusionTextRef.current = undefined;
-      setHasDiffusion(false);
-    }
-  }, [status]);
-
-  useEffect(() => {
-    if (
-      status === "ready" &&
-      hasDiffusion &&
-      diffusionTextRef.current?.trim().length
-    ) {
-      // Fallback: if DiffusionMessage unmounts before onCompleted fires (e.g.
-      // rapid stream end), persist diffusion into message parts after a short
-      // delay so we don't lose the final text.
-      const fallback = setTimeout(() => {
-        if (diffusionTextRef.current?.trim().length) {
-          onDiffusionComplete(0);
-        }
-      }, 2000);
-      return () => clearTimeout(fallback);
-    }
-  }, [status, hasDiffusion, onDiffusionComplete]);
 
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
@@ -436,7 +338,6 @@ export function Chat({
         /responseBody/i,
         /api\.openai\.com/i,
         /api\.anthropic\.com/i,
-        /api\.inceptionlabs\.ai/i,
         /generativeai\.googleapis\.com/i,
       ];
 
@@ -536,9 +437,6 @@ export function Chat({
 
         <Messages
           chatId={id}
-          diffusionActive={hasDiffusion}
-          diffusionText={diffusionText}
-          onDiffusionComplete={onDiffusionComplete}
           inputComponent={
             !isReadonly && messages.length === 0 ? (
               <MultimodalInput
@@ -560,6 +458,16 @@ export function Chat({
           }
           isReadonly={isReadonly}
           messages={messages}
+          onMcpAppUserMessage={(text) => {
+            if (maxIterationsReached || status === "streaming" || status === "submitted") {
+              setInput(text);
+              return;
+            }
+            sendMessage({
+              role: "user",
+              parts: [{ type: "text", text }],
+            });
+          }}
           regenerate={regenerate}
           selectedModelId={initialChatModel}
           setMessages={setMessages}
@@ -568,7 +476,7 @@ export function Chat({
         />
 
         {messages.length > 0 && (
-          <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl flex-col gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
+          <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-2xl flex-col gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
             {maxIterationsReached && !isReadonly && (
               <Card className="w-full border-blue-500/50 bg-blue-500/10 dark:bg-blue-500/20">
                 <CardContent className="p-4">

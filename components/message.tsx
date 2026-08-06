@@ -1,7 +1,7 @@
 "use client";
 import equal from "fast-deep-equal";
 import { motion } from "framer-motion";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import type { GetCurrentConfigToolResult } from "@/lib/ai/tools/get-current-config";
 import type { ReadWebpageToolResult } from "@/lib/ai/tools/read-webpage";
@@ -9,27 +9,53 @@ import type { WebSearchToolResult } from "@/lib/ai/web-search";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
-import { BeakerFlaskIcon } from "./icons";
+import { useAppPortal } from "@/components/portal/context";
+import {
+  type McpAppLaunch,
+  McpAppHost,
+} from "./mcp-app-host";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageContent } from "./message-elements/message";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "./message-elements/reasoning";
 import { Response } from "./message-elements/response";
 import { MessageReasoning } from "./message-reasoning";
 import { MessageTool } from "./message-tool";
 import { GetCurrentConfigToolOutput } from "./tool-outputs/get-current-config-tool-output";
 import { ReadWebpageToolOutput } from "./tool-outputs/read-webpage-tool-output";
 import { WebSearchToolOutput } from "./tool-outputs/web-search-tool-output";
+import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 
 type SetMessagesFn = (
   messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[]),
 ) => void;
 type RegenerateFn = () => Promise<void>;
+
+function extractMcpAppLaunch(output: unknown): McpAppLaunch | null {
+  if (!output || typeof output !== "object") {
+    return null;
+  }
+  const record = output as {
+    success?: boolean;
+    result?: unknown;
+    ui?: {
+      resourceUri?: string;
+      toolName?: string;
+      title?: string;
+      input?: Record<string, unknown>;
+    };
+  };
+  if (!record.ui?.resourceUri || !record.ui.toolName) {
+    return null;
+  }
+  return {
+    resourceUri: record.ui.resourceUri,
+    toolName: record.ui.toolName,
+    title: record.ui.title,
+    input: record.ui.input,
+    result: record.result,
+  };
+}
 
 const PurePreviewMessage = ({
   chatId,
@@ -39,6 +65,7 @@ const PurePreviewMessage = ({
   setMessages,
   regenerate,
   isReadonly,
+  onMcpAppUserMessage,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -47,8 +74,48 @@ const PurePreviewMessage = ({
   setMessages: SetMessagesFn;
   regenerate: RegenerateFn;
   isReadonly: boolean;
+  onMcpAppUserMessage?: (text: string) => void;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
+  const [mcpAppLaunch, setMcpAppLaunch] = useState<McpAppLaunch | null>(null);
+  const [autoOpenedToolIds, setAutoOpenedToolIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const { openPortal } = useAppPortal();
+
+  // Auto-open MCP Apps when a tool with UI metadata completes
+  useEffect(() => {
+    if (isReadonly || !message.parts) {
+      return;
+    }
+    for (const part of message.parts) {
+      if (!part.type.startsWith("tool-ns_")) {
+        continue;
+      }
+      const toolPart = part as {
+        toolCallId?: string;
+        state?: string;
+        output?: unknown;
+      };
+      if (
+        toolPart.state !== "output-available" ||
+        !toolPart.toolCallId ||
+        autoOpenedToolIds.has(toolPart.toolCallId)
+      ) {
+        continue;
+      }
+      const launch = extractMcpAppLaunch(toolPart.output);
+      if (launch) {
+        setAutoOpenedToolIds((prev) => new Set(prev).add(toolPart.toolCallId!));
+        if (launch.toolName === "ns_prompt_library_app") {
+          openPortal("prompts");
+        } else {
+          setMcpAppLaunch(launch);
+        }
+        break;
+      }
+    }
+  }, [message.parts, isReadonly, autoOpenedToolIds, openPortal]);
 
   return (
     <motion.div
@@ -100,14 +167,15 @@ const PurePreviewMessage = ({
               const diffusionPart = part as unknown as {
                 type: "diffusion";
                 text: string;
-                duration?: number;
               };
+              if (!diffusionPart.text?.trim().length) {
+                return null;
+              }
               return (
-                <DiffusionMessage
-                  duration={diffusionPart.duration}
-                  isStreaming={false}
+                <MessageReasoning
+                  isLoading={false}
                   key={key}
-                  text={diffusionPart.text}
+                  reasoning={diffusionPart.text}
                 />
               );
             }
@@ -236,16 +304,10 @@ const PurePreviewMessage = ({
               }
             }
 
-            if (
-              type === "tool-searchNetsuiteDocs" ||
-              type === "tool-searchTimDietrich" ||
-              type === "tool-searchFolio3"
-            ) {
+            if (type === "tool-searchNetsuiteDocs") {
               const toolPart = part as Extract<
                 ChatMessage["parts"][number],
-                | { type: "tool-searchNetsuiteDocs" }
-                | { type: "tool-searchTimDietrich" }
-                | { type: "tool-searchFolio3" }
+                { type: "tool-searchNetsuiteDocs" }
               >;
               const { toolCallId, state } = toolPart;
 
@@ -389,6 +451,7 @@ const PurePreviewMessage = ({
                 input?: unknown;
                 output?: unknown;
               };
+              const appLaunch = extractMcpAppLaunch(toolPart.output);
 
               return (
                 <MessageTool
@@ -410,23 +473,42 @@ const PurePreviewMessage = ({
                       <div className="rounded border p-2 text-red-500">
                         Error: {String(toolPart.output.error)}
                       </div>
-                    ) : toolPart.output &&
-                      typeof toolPart.output === "object" &&
-                      toolPart.output !== null &&
-                      "success" in toolPart.output &&
-                      "result" in toolPart.output ? (
-                      <pre className="wrap-break-word overflow-x-auto whitespace-pre-wrap text-xs">
-                        {JSON.stringify(
-                          (toolPart.output as { result: unknown }).result,
-                          null,
-                          2,
-                        )}
-                      </pre>
-                    ) : toolPart.output ? (
-                      <pre className="wrap-break-word overflow-x-auto whitespace-pre-wrap text-xs">
-                        {JSON.stringify(toolPart.output, null, 2)}
-                      </pre>
-                    ) : null
+                    ) : (
+                      <div className="space-y-2">
+                        {appLaunch ? (
+                          <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                            <p className="text-muted-foreground text-xs">
+                              Interactive NetSuite app ready
+                            </p>
+                            <Button
+                              onClick={() => setMcpAppLaunch(appLaunch)}
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                            >
+                              Open
+                            </Button>
+                          </div>
+                        ) : null}
+                        {toolPart.output &&
+                        typeof toolPart.output === "object" &&
+                        toolPart.output !== null &&
+                        "success" in toolPart.output &&
+                        "result" in toolPart.output ? (
+                          <pre className="wrap-break-word overflow-x-auto whitespace-pre-wrap text-xs">
+                            {JSON.stringify(
+                              (toolPart.output as { result: unknown }).result,
+                              null,
+                              2,
+                            )}
+                          </pre>
+                        ) : toolPart.output ? (
+                          <pre className="wrap-break-word overflow-x-auto whitespace-pre-wrap text-xs">
+                            {JSON.stringify(toolPart.output, null, 2)}
+                          </pre>
+                        ) : null}
+                      </div>
+                    )
                   }
                   state={toolPart.state}
                   toolCallId={toolPart.toolCallId}
@@ -450,6 +532,20 @@ const PurePreviewMessage = ({
           )}
         </div>
       </div>
+
+      <McpAppHost
+        launch={
+          mcpAppLaunch?.toolName === "ns_prompt_library_app"
+            ? null
+            : mcpAppLaunch
+        }
+        onOpenChange={(next) => {
+          if (!next) {
+            setMcpAppLaunch(null);
+          }
+        }}
+        onUserMessage={onMcpAppUserMessage}
+      />
     </motion.div>
   );
 };
@@ -474,49 +570,6 @@ export const PreviewMessage = memo(
   },
 );
 
-export const DiffusionMessage = ({
-  text,
-  placeholder = "Diffusing output…",
-  isStreaming,
-  timerActive,
-  duration,
-  onCompleted,
-  open: openProp,
-}: {
-  text?: string;
-  /** Shown when waiting for diffusion (e.g. tool runs, reasoning). Timer only starts once actual diffusion begins. */
-  placeholder?: string;
-  isStreaming: boolean;
-  /** When false, show "Diffusing for 0s" but don't run the timer (pre-processing). Defaults to isStreaming. */
-  timerActive?: boolean;
-  duration?: number;
-  onCompleted?: (duration: number) => void;
-  /** When provided, controls open state (live streaming). When omitted, uses defaultOpen=false (persisted). */
-  open?: boolean;
-}) => {
-  const displayText = text && text.trim().length > 0 ? text : placeholder;
-
-  return (
-    <Reasoning
-      defaultOpen={false}
-      duration={duration}
-      isStreaming={isStreaming}
-      timerActive={timerActive}
-      onCompleted={onCompleted}
-      open={openProp}
-      reasoningText={displayText}
-    >
-      <ReasoningTrigger
-        completedLabel="Diffused Output"
-        icon={<BeakerFlaskIcon />}
-        label="Diffusing Output"
-        showHeaderBadge={false}
-      />
-      <ReasoningContent isPlainText>{displayText}</ReasoningContent>
-    </Reasoning>
-  );
-};
-
 export const ThinkingMessage = () => {
   const { state: sidebarState, isMobile } = useSidebar();
   const isSidebarOpen = sidebarState === "expanded" && !isMobile;
@@ -529,7 +582,7 @@ export const ThinkingMessage = () => {
         left: isSidebarOpen ? "var(--sidebar-width, 20rem)" : "0",
       }}
     >
-      <div className="mx-auto flex max-w-4xl justify-center px-2 md:px-4">
+      <div className="mx-auto flex max-w-2xl justify-center px-2 md:px-4">
         <div className="-translate-y-1/2 flex items-center gap-2">
           <span
             className="size-3 animate-smooth-bounce rounded-full bg-blue-500"

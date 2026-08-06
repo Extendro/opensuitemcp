@@ -27,7 +27,6 @@ async function fetchSettings() {
       | "google"
       | "anthropic"
       | "openai"
-      | "inception",
   };
 }
 

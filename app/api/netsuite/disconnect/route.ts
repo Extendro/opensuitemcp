@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
+import { getUserSettings } from "@/lib/db/queries";
+import { normalizeNetSuiteAccountId } from "@/lib/netsuite/accounts";
 import { deleteNetSuiteToken } from "@/lib/netsuite/tokens";
 
 export async function POST() {
@@ -10,8 +12,13 @@ export async function POST() {
   }
 
   try {
-    await deleteNetSuiteToken(session.user.id);
-    return NextResponse.json({ success: true });
+    const settings = await getUserSettings({ userId: session.user.id });
+    const activeAccountId = settings?.netsuiteAccountId
+      ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+      : null;
+
+    await deleteNetSuiteToken(session.user.id, activeAccountId);
+    return NextResponse.json({ success: true, accountId: activeAccountId });
   } catch (error) {
     console.error("[NetSuite Disconnect] Error:", error);
     return NextResponse.json(

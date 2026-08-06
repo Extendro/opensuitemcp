@@ -53,35 +53,36 @@
 /* define design tokens (dark mode) - Gemini-inspired colors */
 .dark {
   --background: hsl(210 3% 11%);
-  --foreground: hsl(0 0% 98%);
+  /* Soft warm off-white — avoids harsh pure white on dark */
+  --foreground: hsl(40 8% 88%);
   --card: hsl(240 2% 15%);
-  --card-foreground: hsl(0 0% 98%);
+  --card-foreground: hsl(40 8% 88%);
   --popover: hsl(210 3% 11%);
-  --popover-foreground: hsl(120 2% 78%);
-  --primary: hsl(120 2% 78%);
+  --popover-foreground: hsl(40 6% 82%);
+  --primary: hsl(40 6% 82%);
   --primary-foreground: hsl(210 3% 11%);
   --secondary: hsl(240 2% 15%);
-  --secondary-foreground: hsl(120 2% 78%);
+  --secondary-foreground: hsl(40 6% 82%);
   --muted: hsl(240 2% 15%);
-  --muted-foreground: hsl(120 2% 65%);
+  --muted-foreground: hsl(40 4% 62%);
   --accent: hsl(240 2% 15%);
-  --accent-foreground: hsl(120 2% 78%);
+  --accent-foreground: hsl(40 6% 82%);
   --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(120 2% 78%);
+  --destructive-foreground: hsl(40 6% 82%);
   --border: hsl(240 2% 20%);
   --input: hsl(210 3% 20%);
-  --ring: hsl(120 2% 78%);
+  --ring: hsl(40 6% 70%);
   --chart-1: hsl(220 70% 50%);
   --chart-2: hsl(160 60% 45%);
   --chart-3: hsl(30 80% 55%);
   --chart-4: hsl(280 65% 60%);
   --chart-5: hsl(340 75% 55%);
   --sidebar-background: hsl(210 4% 16%);
-  --sidebar-foreground: hsl(120 2% 78%);
+  --sidebar-foreground: hsl(40 6% 78%);
   --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-primary-foreground: hsl(40 8% 92%);
   --sidebar-accent: hsl(210 4% 22%);
-  --sidebar-accent-foreground: hsl(120 2% 78%);
+  --sidebar-accent-foreground: hsl(40 6% 82%);
   --sidebar-border: hsl(240 2% 20%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
   --sidebar: hsl(210 4% 16%);

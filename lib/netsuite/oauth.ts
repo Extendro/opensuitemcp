@@ -1,19 +1,48 @@
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { getUserSettings } from "@/lib/db/queries";
+import {
+  getNetSuiteApiHost,
+  getNetSuiteAuthorizeHost,
+  getNetSuiteRedirectUri,
+  normalizeNetSuiteAccountId,
+  resolveNetSuiteAccounts,
+} from "./accounts";
 
-async function getNetSuiteConfig(userId: string) {
+export type NetSuiteOAuthConfig = {
+  NS_ACCOUNT_ID: string;
+  NS_INTEGRATION_CLIENT_ID: string;
+  NS_REDIRECT_URI: string;
+};
+
+async function getNetSuiteConfig(
+  userId: string,
+): Promise<NetSuiteOAuthConfig | null> {
   const settings = await getUserSettings({ userId });
-  const NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const NS_REDIRECT_URI = `${NEXTAUTH_URL}/api/netsuite/callback`;
+  const NS_REDIRECT_URI = getNetSuiteRedirectUri();
 
-  if (!settings?.netsuiteAccountId || !settings?.netsuiteClientId) {
+  const activeAccountId = settings?.netsuiteAccountId
+    ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+    : null;
+
+  if (!activeAccountId) {
+    return null;
+  }
+
+  const accounts = resolveNetSuiteAccounts(settings ?? {});
+  const activeAccount = accounts.find(
+    (account) => account.accountId === activeAccountId,
+  );
+  const clientId =
+    activeAccount?.clientId?.trim() || settings?.netsuiteClientId?.trim() || "";
+
+  if (!clientId) {
     return null;
   }
 
   return {
-    NS_ACCOUNT_ID: settings.netsuiteAccountId,
-    NS_INTEGRATION_CLIENT_ID: settings.netsuiteClientId,
+    NS_ACCOUNT_ID: activeAccountId,
+    NS_INTEGRATION_CLIENT_ID: clientId,
     NS_REDIRECT_URI,
   };
 }
@@ -56,15 +85,13 @@ export async function buildAuthorizationUrl(params: {
   const config = await getNetSuiteConfig(params.userId);
   if (!config) {
     throw new Error(
-      "NetSuite configuration is missing. Please configure your NetSuite Account ID and Client ID in Settings.",
+      "NetSuite configuration is missing. Add an account and Connect via Settings.",
     );
   }
 
-  const baseUrl = config.NS_ACCOUNT_ID
-    ? `https://${config.NS_ACCOUNT_ID}.app.netsuite.com/app/login/oauth2/authorize.nl`
-    : "https://system.netsuite.com/app/login/oauth2/authorize.nl";
-
-  const url = new URL(baseUrl);
+  const url = new URL(
+    `${getNetSuiteAuthorizeHost(config.NS_ACCOUNT_ID)}/app/login/oauth2/authorize.nl`,
+  );
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", config.NS_INTEGRATION_CLIENT_ID);
   url.searchParams.set("redirect_uri", config.NS_REDIRECT_URI);
@@ -93,14 +120,11 @@ export async function exchangeCodeForToken(params: {
   const config = await getNetSuiteConfig(params.userId);
   if (!config) {
     throw new Error(
-      "NetSuite configuration is missing. Please configure your NetSuite Account ID and Client ID in Settings.",
+      "NetSuite configuration is missing. Add an account and Connect via Settings.",
     );
   }
 
-  const tokenUrl = config.NS_ACCOUNT_ID
-    ? `https://${config.NS_ACCOUNT_ID}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`
-    : "https://system.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token";
-
+  const tokenUrl = `${getNetSuiteApiHost(config.NS_ACCOUNT_ID)}/services/rest/auth/oauth2/v1/token`;
   const credentials = Buffer.from(
     `${config.NS_INTEGRATION_CLIENT_ID}:`,
   ).toString("base64");
@@ -147,14 +171,11 @@ export async function refreshAccessToken(params: {
   const config = await getNetSuiteConfig(params.userId);
   if (!config) {
     throw new Error(
-      "NetSuite configuration is missing. Please configure your NetSuite Account ID and Client ID in Settings.",
+      "NetSuite configuration is missing. Add an account and Connect via Settings.",
     );
   }
 
-  const tokenUrl = config.NS_ACCOUNT_ID
-    ? `https://${config.NS_ACCOUNT_ID}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`
-    : "https://system.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token";
-
+  const tokenUrl = `${getNetSuiteApiHost(config.NS_ACCOUNT_ID)}/services/rest/auth/oauth2/v1/token`;
   const credentials = Buffer.from(
     `${config.NS_INTEGRATION_CLIENT_ID}:`,
   ).toString("base64");

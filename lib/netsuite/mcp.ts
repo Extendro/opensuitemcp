@@ -13,9 +13,6 @@ async function getMCPBaseUrl(userId: string): Promise<string | null> {
   return `https://${NS_ACCOUNT_ID}.suitetalk.api.netsuite.com/services/mcp/v1`;
 }
 
-/**
- * JSON-RPC 2.0 Request type
- */
 type JsonRpcRequest = {
   jsonrpc: "2.0";
   id: string | number;
@@ -23,9 +20,6 @@ type JsonRpcRequest = {
   params?: unknown;
 };
 
-/**
- * JSON-RPC 2.0 Response type
- */
 type JsonRpcResponse = {
   jsonrpc: "2.0";
   id: string | number;
@@ -35,6 +29,12 @@ type JsonRpcResponse = {
     message: string;
     data?: unknown;
   };
+};
+
+export type MCPToolUiMeta = {
+  resourceUri?: string;
+  /** Deprecated flat key still used by some servers */
+  "ui/resourceUri"?: string;
 };
 
 /**
@@ -48,84 +48,46 @@ export type MCPTool = {
     properties: Record<string, unknown>;
     required?: string[];
   };
+  _meta?: {
+    ui?: MCPToolUiMeta;
+    [key: string]: unknown;
+  };
+  annotations?: {
+    title?: string;
+    [key: string]: unknown;
+  };
 };
 
-/**
- * Fetch all available MCP tools from NetSuite
- */
-export async function fetchMCPTools(
-  userId: string,
-  accessToken: string,
-): Promise<MCPTool[]> {
-  const baseUrl = await getMCPBaseUrl(userId);
-  if (!baseUrl) {
-    throw new Error(
-      "NetSuite Account ID is not configured. Please set it in Settings.",
-    );
+export type MCPResourceContents = {
+  uri: string;
+  mimeType?: string;
+  text?: string;
+  blob?: string;
+  _meta?: Record<string, unknown>;
+};
+
+export function getToolUiResourceUri(mcpTool: MCPTool): string | undefined {
+  const nested = mcpTool._meta?.ui?.resourceUri;
+  if (typeof nested === "string" && nested.startsWith("ui://")) {
+    return nested;
   }
-
-  const url = `${baseUrl}/all`;
-  console.log(`[NetSuite] Fetching tools from: ${url}`);
-
-  const requestId = randomUUID();
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: requestId,
-      method: "tools/list",
-      params: {},
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[NetSuite] HTTP ${response.status} error:`, errorText);
-    throw new Error(
-      `Failed to fetch MCP tools: ${response.status} ${errorText}`,
-    );
+  const flat = mcpTool._meta?.["ui/resourceUri"];
+  if (typeof flat === "string" && flat.startsWith("ui://")) {
+    return flat;
   }
-
-  const jsonRpcResponse = (await response.json()) as JsonRpcResponse;
-
-  if (jsonRpcResponse.error) {
-    throw new Error(
-      `MCP tools/list error: ${jsonRpcResponse.error.message} (code: ${jsonRpcResponse.error.code})`,
-    );
+  const deprecated = mcpTool._meta?.ui?.["ui/resourceUri"];
+  if (typeof deprecated === "string" && deprecated.startsWith("ui://")) {
+    return deprecated;
   }
-
-  // The result should be an object with a tools array
-  let tools: MCPTool[] = [];
-
-  if (jsonRpcResponse.result && typeof jsonRpcResponse.result === "object") {
-    const resultObj = jsonRpcResponse.result as Record<string, unknown>;
-    if (Array.isArray(resultObj.tools)) {
-      tools = resultObj.tools as MCPTool[];
-    } else if (Array.isArray(jsonRpcResponse.result)) {
-      // Fallback: result might be an array directly
-      tools = jsonRpcResponse.result as MCPTool[];
-    } else {
-      console.warn("[NetSuite] Unexpected result structure:", resultObj);
-      tools = [];
-    }
-  }
-
-  console.log(`[NetSuite] Successfully fetched ${tools.length} tools`);
-  return tools;
+  return undefined;
 }
 
-/**
- * Execute an MCP tool call
- */
-export async function executeMCPTool(params: {
+async function mcpJsonRpc(params: {
   userId: string;
   accessToken: string;
-  toolName: string;
-  toolParams: unknown;
+  method: string;
+  rpcParams?: unknown;
+  timeoutMs?: number;
 }): Promise<unknown> {
   const baseUrl = await getMCPBaseUrl(params.userId);
   if (!baseUrl) {
@@ -136,24 +98,18 @@ export async function executeMCPTool(params: {
 
   const url = `${baseUrl}/all`;
   const requestId = randomUUID();
-
   const request: JsonRpcRequest = {
     jsonrpc: "2.0",
     id: requestId,
-    method: "tools/call",
-    params: {
-      name: params.toolName,
-      arguments: params.toolParams,
-    },
+    method: params.method,
+    params: params.rpcParams ?? {},
   };
 
-  console.log(
-    `[NetSuite] Calling tool: ${params.toolName} with params:`,
-    params.toolParams,
-  );
-
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30 second timeout
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    params.timeoutMs ?? 30_000,
+  );
 
   try {
     const response = await fetch(url, {
@@ -170,42 +126,131 @@ export async function executeMCPTool(params: {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `[NetSuite] Tool ${params.toolName} HTTP error:`,
-        response.status,
-        errorText,
-      );
       throw new Error(
-        `MCP tool execution failed: ${response.status} ${errorText}`,
+        `MCP ${params.method} failed: ${response.status} ${errorText}`,
       );
     }
 
     const result = (await response.json()) as JsonRpcResponse;
-
-    console.log(`[NetSuite] Tool ${params.toolName} response received`);
-
     if (result.error) {
-      console.error(
-        `[NetSuite] Tool ${params.toolName} JSON-RPC error:`,
-        result.error,
-      );
       throw new Error(
-        `MCP tool error: ${result.error.message} (code: ${result.error.code})`,
+        `MCP ${params.method} error: ${result.error.message} (code: ${result.error.code})`,
       );
     }
 
-    console.log(
-      `[NetSuite] Tool ${params.toolName} succeeded, result type:`,
-      typeof result.result,
-    );
     return result.result;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("MCP tool execution timed out after 30 seconds");
+      throw new Error(`MCP ${params.method} timed out`);
     }
     throw error;
   }
+}
+
+/**
+ * Fetch all available MCP tools from NetSuite
+ */
+export async function fetchMCPTools(
+  userId: string,
+  accessToken: string,
+): Promise<MCPTool[]> {
+  console.log("[NetSuite] Fetching tools via tools/list");
+  const result = await mcpJsonRpc({
+    userId,
+    accessToken,
+    method: "tools/list",
+    rpcParams: {},
+  });
+
+  let tools: MCPTool[] = [];
+  if (result && typeof result === "object") {
+    const resultObj = result as Record<string, unknown>;
+    if (Array.isArray(resultObj.tools)) {
+      tools = resultObj.tools as MCPTool[];
+    } else if (Array.isArray(result)) {
+      tools = result as MCPTool[];
+    }
+  }
+
+  const withUi = tools.filter((toolDef) => getToolUiResourceUri(toolDef));
+  console.log(
+    `[NetSuite] Successfully fetched ${tools.length} tools (${withUi.length} MCP Apps)`,
+  );
+  for (const toolDef of tools) {
+    if (toolDef.name.includes("_app") || getToolUiResourceUri(toolDef)) {
+      console.log(
+        `[NetSuite] App-like tool ${toolDef.name}:`,
+        JSON.stringify({
+          _meta: toolDef._meta ?? null,
+          annotations: toolDef.annotations ?? null,
+          resourceUri: getToolUiResourceUri(toolDef) ?? null,
+        }),
+      );
+    }
+  }
+
+  return tools;
+}
+
+/**
+ * Execute an MCP tool call
+ */
+export async function executeMCPTool(params: {
+  userId: string;
+  accessToken: string;
+  toolName: string;
+  toolParams: unknown;
+}): Promise<unknown> {
+  console.log(
+    `[NetSuite] Calling tool: ${params.toolName} with params:`,
+    params.toolParams,
+  );
+
+  const result = await mcpJsonRpc({
+    userId: params.userId,
+    accessToken: params.accessToken,
+    method: "tools/call",
+    rpcParams: {
+      name: params.toolName,
+      arguments: params.toolParams,
+    },
+  });
+
+  console.log(
+    `[NetSuite] Tool ${params.toolName} succeeded, result type:`,
+    typeof result,
+  );
+  return result;
+}
+
+/**
+ * Read an MCP resource (used for MCP App HTML UIs)
+ */
+export async function readMCPResource(params: {
+  userId: string;
+  accessToken: string;
+  uri: string;
+}): Promise<{ contents: MCPResourceContents[] }> {
+  console.log(`[NetSuite] Reading resource: ${params.uri}`);
+  const result = await mcpJsonRpc({
+    userId: params.userId,
+    accessToken: params.accessToken,
+    method: "resources/read",
+    rpcParams: { uri: params.uri },
+    timeoutMs: 45_000,
+  });
+
+  if (!result || typeof result !== "object") {
+    throw new Error("Invalid resources/read response");
+  }
+
+  const contents = (result as { contents?: MCPResourceContents[] }).contents;
+  if (!Array.isArray(contents) || contents.length === 0) {
+    throw new Error(`No contents returned for resource ${params.uri}`);
+  }
+
+  return { contents };
 }
 
 /**
@@ -215,8 +260,9 @@ function mcpSchemaToZod(
   mcpSchema: MCPTool["inputSchema"],
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const shape: Record<string, z.ZodTypeAny> = {};
+  const properties = mcpSchema?.properties ?? {};
 
-  for (const [key, value] of Object.entries(mcpSchema.properties)) {
+  for (const [key, value] of Object.entries(properties)) {
     const prop = value as {
       type: string;
       description?: string;
@@ -252,10 +298,12 @@ function mcpSchemaToZod(
       zodType = zodType.describe(prop.description);
     }
 
-    shape[key] = zodType;
+    // NetSuite app tools often accept empty/optional args
+    const required = mcpSchema.required ?? [];
+    shape[key] = required.includes(key) ? zodType : zodType.optional();
   }
 
-  return z.object(shape);
+  return z.object(shape).passthrough();
 }
 
 /**
@@ -263,6 +311,7 @@ function mcpSchemaToZod(
  */
 export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
   const zodSchema = mcpSchemaToZod(params.mcpTool.inputSchema);
+  const uiResourceUri = getToolUiResourceUri(params.mcpTool);
 
   return tool({
     description: params.mcpTool.description,
@@ -292,6 +341,17 @@ export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
         return {
           success: true,
           result,
+          ...(uiResourceUri
+            ? {
+                ui: {
+                  resourceUri: uiResourceUri,
+                  toolName: params.mcpTool.name,
+                  title:
+                    params.mcpTool.annotations?.title ?? params.mcpTool.name,
+                  input,
+                },
+              }
+            : {}),
         };
       } catch (error) {
         console.error(`[NetSuite] Tool ${params.mcpTool.name} failed:`, error);
@@ -332,11 +392,9 @@ export async function loadNetSuiteMCPTools(
 
     console.log(`[NetSuite] Received ${mcpTools.length} tools from NetSuite`);
 
-    // Dynamic tools from NetSuite MCP have varying schemas
     const tools: Record<string, unknown> = {};
 
     for (const mcpTool of mcpTools) {
-      // Sanitize tool name for use as a key (remove special characters)
       const toolKey = mcpTool.name.replace(/[^a-zA-Z0-9_]/g, "_");
       console.log(`[NetSuite] Creating tool: ${mcpTool.name} -> ${toolKey}`);
       tools[toolKey] = createMCPTool({ mcpTool, userId });
@@ -344,7 +402,6 @@ export async function loadNetSuiteMCPTools(
 
     return tools;
   } catch (error) {
-    // If fetching tools fails, return empty object (user might need to re-authenticate)
     console.error("[NetSuite] Error fetching/creating tools:", error);
     return {};
   }
