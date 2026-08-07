@@ -51,7 +51,6 @@ import {
   normalizeNetSuiteAccountId,
 } from "@/lib/netsuite/accounts";
 import { ORACLE_DOC_LINKS } from "@/lib/netsuite/integration-checklist";
-import { cn } from "@/lib/utils";
 import { toast } from "./toast";
 
 export type SettingsPanelSection =
