@@ -19,6 +19,10 @@ import {
   LoaderIcon,
   WarningIcon,
 } from "@/components/icons";
+import {
+  NetSuiteConnectPanel,
+  type NetSuiteDcrProbeState,
+} from "@/components/netsuite-connect-panel";
 import { useAppPortal } from "@/components/portal/context";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -44,9 +48,9 @@ import { guestRegex } from "@/lib/constants";
 import type { NetSuiteAccountEntry } from "@/lib/netsuite/accounts";
 import {
   getNetSuiteNewIntegrationUrl,
-  NETSUITE_DCR_CLIENT_NAME,
   normalizeNetSuiteAccountId,
 } from "@/lib/netsuite/accounts";
+import { ORACLE_DOC_LINKS } from "@/lib/netsuite/integration-checklist";
 import { cn } from "@/lib/utils";
 import { toast } from "./toast";
 
@@ -140,8 +144,12 @@ const SECTION_META: Record<
     subtitle: "Connect MCP tools to your NetSuite account.",
     docsLinks: [
       {
+        label: "Setup guide",
+        href: "/docs/netsuite-integration",
+      },
+      {
         label: "AI Connector",
-        href: "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/article_7200233106.html",
+        href: ORACLE_DOC_LINKS.aiConnector,
       },
     ],
   },
@@ -162,89 +170,6 @@ const SECTION_META: Record<
     subtitle: "Your account details and session information.",
   },
 };
-
-type DcrProbeState =
-  | { status: "idle" }
-  | { status: "probing" }
-  | { status: "ready"; clientId: string }
-  | {
-      status: "needs_integration";
-      accountId: string;
-      integrationUrl: string;
-      redirectUri: string;
-      dcrClientName: string;
-      checklist: string[];
-    }
-  | { status: "error"; error: string };
-
-function getClientNetSuiteRedirectUri(): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/api/netsuite/callback`;
-  }
-  return "/api/netsuite/callback";
-}
-
-function NetSuiteIntegrationInstructions({
-  redirectUri,
-  bodyClassName = "text-sm text-muted-foreground",
-  emphasisClassName = "font-medium text-foreground",
-}: {
-  redirectUri: string;
-  bodyClassName?: string;
-  emphasisClassName?: string;
-}) {
-  return (
-    <ol className={cn("list-decimal space-y-3 pl-5", bodyClassName)}>
-      <li>
-        In NetSuite, navigate to{" "}
-        <span className={emphasisClassName}>
-          Setup &gt; Integration &gt; Manage Integrations &gt; New
-        </span>
-      </li>
-      <li>
-        Set the following field values:
-        <ol className="mt-2 list-[lower-alpha] space-y-1.5 pl-5">
-          <li>
-            <span className={emphasisClassName}>Name</span>
-            {" — "}
-            {NETSUITE_DCR_CLIENT_NAME}
-          </li>
-          <li>
-            <span className={emphasisClassName}>Authorization Code Grant</span>
-            {" — checked"}
-          </li>
-          <li>
-            <span className={emphasisClassName}>Public Client</span>
-            {" — checked"}
-          </li>
-          <li>
-            <span className={emphasisClassName}>Redirect URI</span>
-            {" — "}
-            <span className="break-all">{redirectUri}</span>
-          </li>
-          <li>
-            <span className={emphasisClassName}>Scope</span>
-            {" — NetSuite AI Connector Service (leave other scopes off)"}
-          </li>
-          <li>
-            <span className={emphasisClassName}>
-              Dynamic Client Registration
-            </span>
-            {" — checked"}
-          </li>
-          <li>
-            <span className={emphasisClassName}>
-              Dynamic Client Registration Client Name
-            </span>
-            {" — "}
-            {NETSUITE_DCR_CLIENT_NAME}
-          </li>
-        </ol>
-      </li>
-      <li>Press Save and return to OpenSuiteMCP</li>
-    </ol>
-  );
-}
 
 async function fetchSettings() {
   try {
@@ -404,9 +329,6 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
   const googleApiKeyId = useId();
   const anthropicApiKeyId = useId();
   const openaiApiKeyId = useId();
-  const netsuiteAccountSelectId = useId();
-  const netsuiteNewAccountId = useId();
-  const netsuiteNewAccountLabelId = useId();
   const timezoneId = useId();
   const [settingsCacheKey, setSettingsCacheKey] = useState<string | null>(null);
   const { mutate: globalMutate } = useSWRConfig();
@@ -459,7 +381,9 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
   const [maxIterations, setMaxIterations] = useState("10");
   const maxIterationsId = useId();
   const [isConnectingNetSuite, setIsConnectingNetSuite] = useState(false);
-  const [dcrProbe, setDcrProbe] = useState<DcrProbeState>({ status: "idle" });
+  const [dcrProbe, setDcrProbe] = useState<NetSuiteDcrProbeState>({
+    status: "idle",
+  });
   const [editingLabels, setEditingLabels] = useState<Record<string, string>>(
     {},
   );
@@ -1019,10 +943,6 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     Boolean(selectedAccountId) &&
     !isConnectingNetSuite &&
     (isNetSuiteConnected || dcrProbe.status === "ready");
-  const connectionHelpRedirectUri =
-    dcrProbe.status === "needs_integration"
-      ? dcrProbe.redirectUri
-      : getClientNetSuiteRedirectUri();
 
   // Show skeletons while loading
   const showSkeletons = isLoading;
@@ -1298,313 +1218,45 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
               </Button>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="font-medium text-sm">Connection</p>
-                  <p className="text-muted-foreground text-xs">
-                    Choose a NetSuite account to connect with MCP tools.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={netsuiteAccountSelectId}>
-                    Active account
-                  </Label>
-                  {showSkeletons && accountOptions.length === 0 ? (
-                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2">
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  ) : (
-                    <Select
-                      disabled={accountOptions.length === 0}
-                      onValueChange={(value) => {
-                        void handleSelectNetSuiteAccount(value);
-                      }}
-                      value={selectedAccountId || undefined}
-                    >
-                      <SelectTrigger id={netsuiteAccountSelectId}>
-                        <SelectValue placeholder="Select an account" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accountOptions.map((account) => (
-                          <SelectItem
-                            key={account.accountId}
-                            value={account.accountId}
-                          >
-                            {account.label} ({account.accountId})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {dcrProbe.status === "probing" && selectedAccountId && (
-                  <p className="flex items-center gap-2 text-muted-foreground text-xs">
-                    <span className="inline-block animate-spin">
-                      <LoaderIcon size={14} />
-                    </span>
-                    Checking Integration record for {selectedAccountId}…
-                  </p>
-                )}
-
-                {selectedAccountId &&
-                  dcrProbe.status === "needs_integration" &&
-                  dcrProbe.accountId === selectedAccountId && (
-                    <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3">
-                      <div className="flex items-start gap-2">
-                        <div className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-500">
-                          <WarningIcon size={16} />
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div className="space-y-2">
-                            <p className="font-medium text-sm text-yellow-900 dark:text-yellow-100">
-                              Integration record required
-                            </p>
-                            <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                              No matching NetSuite Integration was found for
-                              account{" "}
-                              <span className="font-medium">
-                                {dcrProbe.accountId}
-                              </span>
-                              . Create it once with the steps below, then press
-                              Check again.
-                            </p>
-                            <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                              If you are a non-admin user, please contact your
-                              company NetSuite admin team to set up an
-                              Integration record for account{" "}
-                              <span className="font-medium">
-                                {dcrProbe.accountId}
-                              </span>
-                              .
-                            </p>
-                          </div>
-                          <NetSuiteIntegrationInstructions
-                            bodyClassName="text-xs text-yellow-800 dark:text-yellow-200"
-                            emphasisClassName="font-medium text-yellow-900 dark:text-yellow-100"
-                            redirectUri={dcrProbe.redirectUri}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              onClick={openIntegrationSetup}
-                              size="sm"
-                              type="button"
-                            >
-                              Setup Integration (Admin Only)
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                void probeNetSuiteDcr(dcrProbe.accountId);
-                              }}
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                            >
-                              Check again
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                {selectedAccountId && dcrProbe.status === "error" && (
-                  <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3">
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-500">
-                        <WarningIcon size={16} />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <p className="font-medium text-sm text-yellow-900 dark:text-yellow-100">
-                          Could not verify Integration
-                        </p>
-                        <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                          {dcrProbe.error}
-                        </p>
-                        <Button
-                          onClick={() => {
-                            void probeNetSuiteDcr(selectedAccountId);
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          Check again
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    disabled={!canConnectNetSuite}
-                    onClick={() => {
-                      void handleNetSuiteConnect();
-                    }}
-                    type="button"
-                    variant={isNetSuiteConnected ? "destructive" : "default"}
-                  >
-                    {isNetSuiteConnected
-                      ? "Disconnect"
-                      : isConnectingNetSuite
-                        ? "Connecting..."
-                        : "Connect"}
-                  </Button>
-                  {isNetSuiteConnected && (
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-600 dark:bg-green-400" />
-                      <span className="text-muted-foreground text-sm">
-                        Connected
-                        {selectedAccountId ? ` · ${selectedAccountId}` : ""}
-                      </span>
-                    </div>
-                  )}
-                  {!isNetSuiteConnected && dcrProbe.status === "ready" && (
-                    <span className="text-muted-foreground text-sm">
-                      Integration ready
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="font-medium text-sm">Manage accounts</p>
-                  <p className="text-muted-foreground text-xs">
-                    Add, rename, or remove NetSuite accounts used for MCP tools.
-                  </p>
-                </div>
-
-                {netsuiteAccounts.length > 0 ? (
-                  <div>
-                    {netsuiteAccounts.map((account) => (
-                      <div
-                        className="space-y-2 border-border/60 border-b py-3 last:border-b-0"
-                        key={account.accountId}
-                      >
-                        <p className="truncate text-muted-foreground text-xs">
-                          {account.accountId}
-                        </p>
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <Input
-                            aria-label={`Label for ${account.accountId}`}
-                            autoComplete="off"
-                            onChange={(e) => {
-                              setEditingLabels((previous) => ({
-                                ...previous,
-                                [account.accountId]: e.target.value,
-                              }));
-                            }}
-                            value={
-                              editingLabels[account.accountId] ?? account.label
-                            }
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              disabled={
-                                (editingLabels[account.accountId] ??
-                                  account.label) === account.label
-                              }
-                              onClick={() => {
-                                void handleRenameNetSuiteAccount(
-                                  account.accountId,
-                                );
-                              }}
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                            >
-                              Rename
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                void handleRemoveNetSuiteAccount(
-                                  account.accountId,
-                                );
-                              }}
-                              size="sm"
-                              type="button"
-                              variant="ghost"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No accounts yet. Add one below.
-                  </p>
-                )}
-
-                <div className="space-y-3 border-border/60 border-t pt-4">
-                  <p className="font-medium text-sm">Add account</p>
-                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <div className="space-y-2">
-                      <Label htmlFor={netsuiteNewAccountId}>Account ID</Label>
-                      <Input
-                        autoComplete="off"
-                        id={netsuiteNewAccountId}
-                        onChange={(e) => setNewAccountId(e.target.value)}
-                        placeholder="1234567-sb1"
-                        value={newAccountId}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={netsuiteNewAccountLabelId}>
-                        Label (optional)
-                      </Label>
-                      <Input
-                        autoComplete="off"
-                        id={netsuiteNewAccountLabelId}
-                        onChange={(e) => setNewAccountLabel(e.target.value)}
-                        placeholder="Sandbox"
-                        value={newAccountLabel}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button
-                        disabled={!newAccountId.trim()}
-                        onClick={() => {
-                          void handleAddNetSuiteAccount();
-                        }}
-                        type="button"
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="font-medium text-sm">Connection instructions</p>
-                  <p className="text-muted-foreground text-xs">
-                    A NetSuite Administrator needs to create this Integration
-                    once per account. Non-admin users should contact their
-                    NetSuite admin team.
-                  </p>
-                </div>
-                <NetSuiteIntegrationInstructions
-                  redirectUri={connectionHelpRedirectUri}
-                />
-                {netsuiteAccountId ? (
-                  <Button
-                    onClick={openIntegrationSetup}
-                    type="button"
-                    variant="outline"
-                  >
-                    Setup Integration (Admin Only)
-                  </Button>
-                ) : null}
-              </div>
-            </div>
+            <NetSuiteConnectPanel
+              accounts={accountOptions}
+              canConnect={canConnectNetSuite}
+              dcrProbe={dcrProbe}
+              editingLabels={editingLabels}
+              isConnected={isNetSuiteConnected}
+              isConnecting={isConnectingNetSuite}
+              newAccountId={newAccountId}
+              newAccountLabel={newAccountLabel}
+              onAddAccount={() => {
+                void handleAddNetSuiteAccount();
+              }}
+              onConnect={() => {
+                void handleNetSuiteConnect();
+              }}
+              onEditingLabelChange={(accountId, value) => {
+                setEditingLabels((previous) => ({
+                  ...previous,
+                  [accountId]: value,
+                }));
+              }}
+              onNewAccountIdChange={setNewAccountId}
+              onNewAccountLabelChange={setNewAccountLabel}
+              onOpenIntegration={openIntegrationSetup}
+              onProbe={(accountId) => {
+                void probeNetSuiteDcr(accountId);
+              }}
+              onRemoveAccount={(accountId) => {
+                void handleRemoveNetSuiteAccount(accountId);
+              }}
+              onRenameAccount={(accountId) => {
+                void handleRenameNetSuiteAccount(accountId);
+              }}
+              onSelectAccount={(accountId) => {
+                void handleSelectNetSuiteAccount(accountId);
+              }}
+              selectedAccountId={selectedAccountId}
+              showSkeletons={showSkeletons}
+            />
           )
         ) : null}
 
@@ -1772,7 +1424,7 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
         ) : null}
       </div>
 
-      <DialogFooter className="shrink-0 border-t border-border/60 px-4 py-3 sm:justify-end">
+      <DialogFooter className="shrink-0 gap-2 border-t border-border/60 px-4 py-3 sm:justify-end">
         <Button onClick={() => closePortal()} type="button" variant="outline">
           Cancel
         </Button>

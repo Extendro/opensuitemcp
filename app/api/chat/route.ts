@@ -486,10 +486,12 @@ export async function POST(request: Request) {
                     ? {
                         providerOptions: {
                           anthropic: {
+                            // Sonnet 5+ rejects thinking.type.enabled; use adaptive + effort
                             thinking: {
-                              type: "enabled",
-                              budgetTokens: 4096, // Matches Google's 4K token budget
+                              type: "adaptive",
+                              display: "summarized",
                             },
+                            effort: "high",
                           },
                         },
                       }

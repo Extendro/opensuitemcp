@@ -60,7 +60,12 @@ const PureChatItem = ({
             </Link>
           </SidebarMenuButton>
         </TooltipTrigger>
-        <TooltipContent className="wrap-break-word max-w-sm" side="right">
+        <TooltipContent
+          avoidCollisions
+          className="wrap-break-word max-w-sm"
+          collisionPadding={12}
+          side="top"
+        >
           {chat.summary || chat.title}
         </TooltipContent>
       </Tooltip>
