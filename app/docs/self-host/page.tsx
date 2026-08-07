@@ -199,8 +199,66 @@ export default function SelfHostDocsPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="font-medium text-[#f3efe6] text-lg">Who may run this</h2>
+          <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
+            <li>
+              <strong className="font-medium text-[#f3efe6]/85">Free</strong> —
+              your organization self-hosts OpenSuiteMCP for{" "}
+              <em>its own</em> internal NetSuite AI use (Sustainable Use
+              License).
+            </li>
+            <li>
+              <strong className="font-medium text-[#f3efe6]/85">Paid</strong> —
+              commercial delivery, paid implementation, or paid ongoing support
+              of this product — only through{" "}
+              <a
+                className="text-[#f3efe6] underline underline-offset-4"
+                href="https://www.unstackedapps.com/"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Unstacked Apps
+              </a>{" "}
+              (
+              <a
+                className="text-[#f3efe6] underline underline-offset-4"
+                href="mailto:support@unstackedapps.com"
+              >
+                support@unstackedapps.com
+              </a>
+              ).
+            </li>
+            <li>
+              <strong className="font-medium text-[#f3efe6]/85">
+                Not allowed
+              </strong>{" "}
+              — third parties charging to implement, host, white-label, or
+              commercially support this codebase for someone else. See{" "}
+              <a
+                className="text-[#f3efe6] underline underline-offset-4"
+                href={`${OSS_GITHUB_URL}/blob/main/LICENSE`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                LICENSE
+              </a>
+              .
+            </li>
+          </ul>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="font-medium text-[#f3efe6] text-lg">Next steps</h2>
           <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
+            <li>
+              <Link
+                className="text-[#f3efe6] underline underline-offset-4"
+                href="/docs/upgrades"
+              >
+                Keeping up to date
+              </Link>{" "}
+              — post-go-live upgrades via GitHub release tags
+            </li>
             <li>
               <Link
                 className="text-[#f3efe6] underline underline-offset-4"

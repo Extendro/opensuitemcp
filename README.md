@@ -150,7 +150,9 @@ Self-host defaults are generous. Override with env vars if needed:
 
 ## License & notices
 
-Self-host and internal use are welcome. **Commercial use of this codebase is reserved by Unstacked Apps, LLC.**
+**Free:** your organization may self-host for its own internal use. **Paid:** commercial delivery, paid implementation, or paid support of this product — only via [Unstacked Apps](https://www.unstackedapps.com/) (`support@unstackedapps.com`). Third parties may not charge to implement or commercially support this codebase.
+
+After go-live, update via release tags — see [docs/upgrades](https://opensuitemcp.com/docs/upgrades) (also at `/docs/upgrades` when self-hosting).
 
 - [LICENSE](LICENSE) — Sustainable Use License
 - [NOTICE.md](NOTICE.md) — Usage notice
