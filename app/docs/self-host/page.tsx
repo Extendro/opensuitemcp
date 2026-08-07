@@ -199,13 +199,14 @@ export default function SelfHostDocsPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-medium text-[#f3efe6] text-lg">Who may run this</h2>
+          <h2 className="font-medium text-[#f3efe6] text-lg">
+            Who may run this
+          </h2>
           <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
             <li>
               <strong className="font-medium text-[#f3efe6]/85">Free</strong> —
-              your organization self-hosts OpenSuiteMCP for{" "}
-              <em>its own</em> internal NetSuite AI use (Sustainable Use
-              License).
+              your organization self-hosts OpenSuiteMCP for <em>its own</em>{" "}
+              internal NetSuite AI use (Sustainable Use License).
             </li>
             <li>
               <strong className="font-medium text-[#f3efe6]/85">Paid</strong> —

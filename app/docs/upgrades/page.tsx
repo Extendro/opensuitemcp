@@ -7,8 +7,7 @@ export const metadata: Metadata = {
     "How to update a self-hosted OpenSuiteMCP deployment using GitHub release tags, skills sync, and migrations.",
 };
 
-const RELEASES_URL =
-  "https://github.com/unstackedapps/opensuitemcp/releases";
+const RELEASES_URL = "https://github.com/unstackedapps/opensuitemcp/releases";
 const CHANGELOG_URL =
   "https://github.com/unstackedapps/opensuitemcp/blob/main/CHANGELOG.md";
 const SUPPORT_EMAIL = "support@unstackedapps.com";
@@ -92,8 +91,8 @@ export default function UpgradesDocsPage() {
               >
                 GitHub Releases
               </a>
-              . Prefer tags over{" "}
-              <code className="text-[#f3efe6]/85">main</code>.
+              . Prefer tags over <code className="text-[#f3efe6]/85">main</code>
+              .
             </li>
             <li>
               Read the{" "}
@@ -158,8 +157,8 @@ pnpm db:migrate
               <strong className="font-medium text-[#f3efe6]/85">
                 Oracle SuiteCloud Agent Skills
               </strong>{" "}
-              — <code className="text-[#f3efe6]/85">pnpm skills:sync</code>{" "}
-              (or weekly cron / production entrypoint)
+              — <code className="text-[#f3efe6]/85">pnpm skills:sync</code> (or
+              weekly cron / production entrypoint)
             </li>
             <li>
               <strong className="font-medium text-[#f3efe6]/85">
