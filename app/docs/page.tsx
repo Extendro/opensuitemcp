@@ -32,7 +32,14 @@ const DOCS = [
     href: "/docs/self-host",
     title: "Org-hosted architecture",
     description:
-      "Trust boundaries, deploy shape, and when to self-host vs use hosted — for architects and security.",
+      "Trust boundaries, deploy shape, licensing, and when to self-host vs use hosted — for architects and security.",
+    ready: true,
+  },
+  {
+    href: "/docs/upgrades",
+    title: "Upgrades",
+    description:
+      "Post-go-live updates via GitHub release tags, skills sync, and migrations.",
     ready: true,
   },
 ] as const;
