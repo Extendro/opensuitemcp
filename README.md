@@ -115,6 +115,8 @@ _NetSuite MCP tools in a conversation._
    pnpm dev
    ```
 
+   Uses webpack by default (Turbopack can fail resolving `@ai-sdk/provider-utils` dynamic imports). Optional: `pnpm dev:turbo` if you want to try Turbopack.
+
    App: [http://localhost:3000](http://localhost:3000)
 
 6. **Configure in the App Portal** (sidebar icons open the same portal)
