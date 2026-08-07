@@ -5,6 +5,23 @@ All notable changes to OpenSuiteMCP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-08-07
+
+### ✨ Added
+
+- **Upgrades doc** — `/docs/upgrades` runbook for tag-based self-host updates (`skills:sync`, migrate, rebuild)
+- **Licensing clarity** — self-host “Who may run this” plus README/NOTICE: free for your org’s internal use; paid delivery/support only via Unstacked Apps
+
+### 🐛 Fixed
+
+- **`pnpm dev` Turbopack failure** — default to webpack (`next dev`); optional `pnpm dev:turbo` (AI SDK `provider-utils` dynamic import under Turbopack)
+
+### 🧰 Technical
+
+- Docs index links Upgrades; self-host cross-links to the upgrades runbook
+
+---
+
 ## [3.1.0] - 2026-08-07
 
 ### ✨ Added
