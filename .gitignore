@@ -41,6 +41,9 @@ yarn-error.log*
 .vercel
 .env*.local
 
+# Synced Oracle SuiteCloud Agent Skills (SKILL.md cache from GitHub)
+.data/
+
 # Playwright
 /test-results/
 /playwright-report/

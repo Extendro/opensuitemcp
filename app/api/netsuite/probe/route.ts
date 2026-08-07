@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         integrationUrl: getNetSuiteNewIntegrationUrl(accountId),
         redirectUri: getNetSuiteRedirectUri(),
         dcrClientName: NETSUITE_DCR_CLIENT_NAME,
-        checklist: getNetSuiteIntegrationChecklist(),
+        checklist: getNetSuiteIntegrationChecklist(getNetSuiteRedirectUri()),
       });
     }
 

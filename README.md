@@ -1,10 +1,16 @@
 # <img src="./app/icon.svg" alt="OpenSuiteMCP Icon" width="24" height="24" /> <span style="font-weight: 200;">OpenSuite</span>MCP
 
-Open-source **NetSuite MCP client** — chat UI for NetSuite’s AI Connector Service, MCP Standard Tools, Companion prompt library, and SuiteCloud Agent Skills.
+[![GitHub stars](https://img.shields.io/github/stars/unstackedapps/opensuitemcp?style=social)](https://github.com/unstackedapps/opensuitemcp/stargazers)
+[![Release](https://img.shields.io/github/v/release/unstackedapps/opensuitemcp)](https://github.com/unstackedapps/opensuitemcp/releases)
+[![License](https://img.shields.io/badge/license-Sustainable%20Use-blue)](./LICENSE)
+
+Source-available **NetSuite MCP client** — chat UI for NetSuite’s AI Connector Service, MCP Standard Tools, Companion prompt library, and SuiteCloud Agent Skills.
 
 Bring your own LLM keys (**Google Gemini**, **Anthropic Claude**, or **OpenAI GPT**). Self-host for internal use. Commercial rights reserved by [Unstacked Apps, LLC](https://www.unstackedapps.com/).
 
-**Current release:** [v3.0.0](https://github.com/unstackedapps/opensuitemcp/releases/tag/v3.0.0) · [Changelog](CHANGELOG.md)
+**Star this repo** if it helps your NetSuite team — it makes the project discoverable.
+
+**Current release:** [v3.1.0](https://github.com/unstackedapps/opensuitemcp/releases/tag/v3.1.0) · [Changelog](CHANGELOG.md)
 
 <img src="./docs/screenshot-chat.png" alt="OpenSuiteMCP chat UI" width="100%" />
 
@@ -22,13 +28,19 @@ _Main chat UI._
 
 Open **Skills** from the App Portal (or the sidebar). Enable Oracle SuiteCloud Agent Skills and/or your own custom skills. Enabled skills are injected into the system prompt for **new** messages — useful for finance analyst workflows, SuiteScript / SDF guidance, OWASP patterns, and more.
 
+Oracle skills are **not** vendored in git. One shared on-disk pack is the source of truth for every user:
+
+```bash
+pnpm skills:sync
+```
+
+That downloads `SKILL.md` files from Oracle’s [agent-skills](https://github.com/oracle/netsuite-suitecloud-sdk/tree/master/packages/agent-skills) pack into `.data/oracle-skills` (or `ORACLE_SKILLS_DIR`). Run it after setup, on deploy (production entrypoint does this), and on a **weekly cron**. New upstream skills appear as new toggles (off by default); removed upstream skills are pruned. Optional: `GITHUB_TOKEN` for higher GitHub API limits.
+
 Custom skills: add a `SKILL.md`-style document in the portal; toggle it like any Oracle skill.
 
 <img src="./docs/screenshot-skills.png" alt="OpenSuiteMCP Skills panel" width="100%" />
 
 _Skills panel — Oracle pack and custom skills._
-
-Pack source: [oracle/netsuite-suitecloud-sdk — agent-skills](https://github.com/oracle/netsuite-suitecloud-sdk/tree/master/packages/agent-skills)
 
 ## Prompts
 
@@ -85,13 +97,19 @@ _NetSuite MCP tools in a conversation._
 
    Use your project name instead of `opensuitemcp` if you chose a custom name during setup.
 
-3. **Migrate the database**
+3. **Sync Oracle skills**
+
+   ```bash
+   pnpm skills:sync
+   ```
+
+4. **Migrate the database**
 
    ```bash
    pnpm db:migrate
    ```
 
-4. **Start the dev server**
+5. **Start the dev server**
 
    ```bash
    pnpm dev
@@ -99,7 +117,7 @@ _NetSuite MCP tools in a conversation._
 
    App: [http://localhost:3000](http://localhost:3000)
 
-5. **Configure in the App Portal** (sidebar icons open the same portal)
+6. **Configure in the App Portal** (sidebar icons open the same portal)
 
    - **AI Provider** — Choose Google / Anthropic / OpenAI and enter your API key (stored encrypted)
    - **NetSuite** — Add an account ID, complete Integration / DCR setup, connect

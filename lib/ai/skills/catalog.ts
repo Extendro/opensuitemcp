@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { getOracleSkillsDir } from "./sync-oracle";
 
 export type SkillAuthor = "Oracle NetSuite" | "You" | "OpenSuiteMCP";
 
@@ -30,81 +31,39 @@ export type UserSkillSettings = {
   customSkills: CustomSkill[];
 };
 
-function resolveOracleSkillsDir(): string {
-  const candidates = [
-    path.join(process.cwd(), "lib/ai/skills/oracle"),
-    // Next standalone runs from `.next/standalone` — skills are copied beside it
-    // and also kept at the image root `/app/lib/...`.
-    path.join(process.cwd(), "../../lib/ai/skills/oracle"),
-    path.join(process.cwd(), "../lib/ai/skills/oracle"),
-    "/app/lib/ai/skills/oracle",
-  ];
-  for (const candidate of candidates) {
-    // Require at least one SKILL.md so empty/partial copies are skipped.
-    if (
-      existsSync(candidate) &&
-      existsSync(
-        path.join(candidate, "netsuite-ai-connector-instructions", "SKILL.md"),
-      )
-    ) {
-      return candidate;
-    }
+function titleFromSkillId(id: string): string {
+  return id
+    .replace(/^netsuite-/, "")
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function parseSkillFrontmatter(raw: string): {
+  name?: string;
+  description?: string;
+} {
+  if (!raw.startsWith("---")) {
+    return {};
   }
-  return candidates[0];
+  const end = raw.indexOf("\n---", 3);
+  if (end === -1) {
+    return {};
+  }
+  const block = raw.slice(3, end);
+  const nameMatch = block.match(/^name:\s*(.+)$/m);
+  const descMatch = block.match(/^description:\s*(.+)$/m);
+  const name = nameMatch?.[1]?.trim().replace(/^["']|["']$/g, "");
+  let description = descMatch?.[1]?.trim().replace(/^["']|["']$/g, "");
+  // Folded/literal descriptions are rare; keep first line if huge.
+  if (description && description.length > 280) {
+    description = `${description.slice(0, 277)}...`;
+  }
+  return {
+    name: name || undefined,
+    description: description || undefined,
+  };
 }
-
-function getOracleSkillsDir(): string {
-  return resolveOracleSkillsDir();
-}
-
-const ORACLE_RELEASE_DATE = "2026-06-15";
-
-/** Human labels for Oracle pack folder names */
-const ORACLE_LABELS: Record<string, { name: string; description: string }> = {
-  "netsuite-ai-connector-instructions": {
-    name: "AI Connector Instructions",
-    description:
-      "Tool selection order, SuiteQL safety, multi-subsidiary and output rules for MCP sessions.",
-  },
-  "netsuite-finance-analyst": {
-    name: "Finance Analyst",
-    description:
-      "Finance-focused workflows for reports, variance, AR/AP, and period analysis.",
-  },
-  "netsuite-owasp-secure-coding": {
-    name: "OWASP Secure Coding",
-    description: "Secure coding guidance for NetSuite customizations.",
-  },
-  "netsuite-sdf-project-documentation": {
-    name: "SDF Project Documentation",
-    description: "Document SuiteCloud Development Framework projects.",
-  },
-  "netsuite-sdf-roles-and-permissions": {
-    name: "SDF Roles & Permissions",
-    description: "Role and permission design for SDF projects.",
-  },
-  "netsuite-sdf-safe-guide": {
-    name: "SDF Safe Guide",
-    description:
-      "Safe SuiteApp development, governance, and performance practices.",
-  },
-  "netsuite-suitescript-learning": {
-    name: "SuiteScript Learning",
-    description: "SuiteScript learning and implementation guidance.",
-  },
-  "netsuite-suitescript-records-reference": {
-    name: "SuiteScript Records Reference",
-    description: "Record-type reference for SuiteScript development.",
-  },
-  "netsuite-suitescript-upgrade": {
-    name: "SuiteScript Upgrade",
-    description: "Migrate and upgrade SuiteScript APIs safely.",
-  },
-  "netsuite-uif-spa-reference": {
-    name: "UIF SPA Reference",
-    description: "NetSuite UI Framework single-page app reference.",
-  },
-};
 
 const ALWAYS_ON_SKILL_ID = "netsuite-ai-connector-instructions";
 
@@ -157,19 +116,24 @@ export function listOracleCatalogSkills(): CatalogSkill[] {
     .sort();
 
   return dirs.map((id) => {
-    const meta = ORACLE_LABELS[id] ?? {
-      name: id,
-      description: "Oracle SuiteCloud Agent Skill",
-    };
-    const body = readOracleSkillBody(id) ?? "";
+    const rawPath = path.join(skillsDir, id, "SKILL.md");
+    const raw = existsSync(rawPath) ? readFileSync(rawPath, "utf8") : "";
+    const fm = parseSkillFrontmatter(raw);
+    const body = stripFrontmatter(raw);
+    let updatedAt = new Date().toISOString().slice(0, 10);
+    try {
+      updatedAt = statSync(rawPath).mtime.toISOString().slice(0, 10);
+    } catch {
+      /* keep today */
+    }
     return {
       id,
-      name: meta.name,
-      description: meta.description,
+      name: fm.name ? titleFromSkillId(fm.name) : titleFromSkillId(id),
+      description: fm.description ?? "Oracle SuiteCloud Agent Skill",
       author: "Oracle NetSuite" as const,
       source: "oracle" as const,
       alwaysOn: id === ALWAYS_ON_SKILL_ID,
-      updatedAt: ORACLE_RELEASE_DATE,
+      updatedAt,
       contentLength: body.length,
     };
   });

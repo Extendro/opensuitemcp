@@ -3,10 +3,9 @@ import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
+import { apiModelFor } from "./model-registry";
 
 function createGoogleProvider(apiKey?: string) {
-  // Create a custom Google provider instance with the API key if provided
-  // If no API key is provided, use the default provider (which uses env var)
   const googleProvider = apiKey ? createGoogleGenerativeAI({ apiKey }) : google;
 
   if (apiKey) {
@@ -20,23 +19,19 @@ function createGoogleProvider(apiKey?: string) {
     );
   }
 
+  const speed = apiModelFor("google", "speed");
+  const reasoning = apiModelFor("google", "reasoning");
+
   return customProvider({
     languageModels: {
-      // Base model for fast responses
-      "chat-model": googleProvider("gemini-2.5-flash"),
-
-      // Uses native Gemini thinking for enhanced complex reasoning
-      "chat-model-reasoning": googleProvider("gemini-2.5-pro"),
-
-      // Model for generating chat titles
-      "title-model": googleProvider("gemini-2.5-flash"),
+      "chat-model": googleProvider(speed),
+      "chat-model-reasoning": googleProvider(reasoning),
+      "title-model": googleProvider(speed),
     },
   });
 }
 
 function createAnthropicProvider(apiKey?: string) {
-  // Create a custom Anthropic provider instance with the API key if provided
-  // If no API key is provided, use the default provider (which uses env var)
   const anthropicProvider = apiKey ? createAnthropic({ apiKey }) : anthropic;
 
   if (apiKey) {
@@ -50,27 +45,20 @@ function createAnthropicProvider(apiKey?: string) {
     );
   }
 
+  const speed = apiModelFor("anthropic", "speed");
+  const reasoning = apiModelFor("anthropic", "reasoning");
+
   return customProvider({
     languageModels: {
-      // Base model for fast responses (using Claude 4.5 Haiku)
-      // Note: Using 'as never' because Anthropic provider types don't perfectly align with customProvider's expected LanguageModelV2 type
-      "chat-model": anthropicProvider("claude-haiku-4-5-20251001") as never,
-
-      // Uses advanced reasoning (using Claude Sonnet 4 - explicitly supports thinking/reasoning)
-      // See: https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic#reasoning
-      "chat-model-reasoning": anthropicProvider(
-        "claude-sonnet-4-20250514",
-      ) as never,
-
-      // Model for generating chat titles
-      "title-model": anthropicProvider("claude-haiku-4-5-20251001") as never,
+      // Note: `as never` — Anthropic provider types vs customProvider LanguageModel
+      "chat-model": anthropicProvider(speed) as never,
+      "chat-model-reasoning": anthropicProvider(reasoning) as never,
+      "title-model": anthropicProvider(speed) as never,
     },
   });
 }
 
 function createOpenAIProvider(apiKey?: string) {
-  // Create a custom OpenAI provider instance with the API key if provided
-  // If no API key is provided, use the default provider (which uses env var)
   const openaiProvider = apiKey ? createOpenAI({ apiKey }) : openai;
 
   if (apiKey) {
@@ -84,22 +72,14 @@ function createOpenAIProvider(apiKey?: string) {
     );
   }
 
+  const speed = apiModelFor("openai", "speed");
+  const reasoning = apiModelFor("openai", "reasoning");
+
   return customProvider({
     languageModels: {
-      // Base model for fast responses (using GPT-5-mini)
-      // Optimized for low latency and high throughput, equivalent to Gemini 2.5 Flash
-      // Uses responses API (default in AI SDK 6) which supports v3 models
-      // Note: Using 'as never' because OpenAI provider types don't perfectly align with customProvider's expected LanguageModelV2 type
-      "chat-model": openaiProvider("gpt-5-mini") as never,
-
-      // Uses advanced reasoning (using o4-mini - OpenAI's reasoning model)
-      // Equivalent to Gemini 2.5 Pro with thinking capabilities
-      // o4-mini supports reasoningEffort and reasoningSummary features
-      "chat-model-reasoning": openaiProvider("o4-mini") as never,
-
-      // Model for generating chat titles (using GPT-5-mini for fast title generation)
-      // Uses responses API for v3 model support
-      "title-model": openaiProvider("gpt-5-mini") as never,
+      "chat-model": openaiProvider(speed) as never,
+      "chat-model-reasoning": openaiProvider(reasoning) as never,
+      "title-model": openaiProvider(speed) as never,
     },
   });
 }

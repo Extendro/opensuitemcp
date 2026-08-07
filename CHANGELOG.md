@@ -5,6 +5,38 @@ All notable changes to OpenSuiteMCP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-08-07
+
+### ✨ Added
+
+- **NetSuite connect wizard**
+  - Guided App Portal flow with shared Integration checklist
+  - Manage accounts (active radio, rename, compact controls)
+  - Public `/docs` + `/docs/netsuite-integration` setup guide
+
+- **Org-hosted architecture doc**
+  - `/docs/self-host` trust-boundary overview for security / architects
+
+- **Oracle skills sync**
+  - Skills pack no longer vendored in git; `pnpm skills:sync` pulls from Oracle’s agent-skills repo into `.data/oracle-skills`
+  - Catalog reads the on-disk pack; new upstream skills appear as toggles (off by default)
+
+- **Shared model registry**
+  - Canonical Speed / Reasoning model IDs for Google, Anthropic, and OpenAI
+
+### 🐛 Fixed
+
+- **Anthropic Sonnet thinking** — use adaptive thinking + effort (Sonnet 5+ rejects `thinking.type.enabled`)
+- **Dialog / sheet / tooltip polish** — mobile footer gaps, dialog width, tooltip collisions for chat history
+
+### 🧰 Technical
+
+- Bump `@ai-sdk/anthropic` for adaptive thinking support
+- `.data/` gitignored for synced Oracle skills cache
+- Docs routes are public (no guest session required)
+
+---
+
 ## [3.0.0] - 2026-08-06
 
 ### ✨ Added

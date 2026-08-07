@@ -26,21 +26,7 @@ export function getNetSuiteNewIntegrationUrl(accountId: string): string {
   return `https://${normalized}.app.netsuite.com/app/common/integration/integrapp.nl`;
 }
 
-/**
- * Compact Integration field list for API responses.
- * Settings UI renders fuller numbered instructions in the help modal.
- */
-export function getNetSuiteIntegrationChecklist(): string[] {
-  return [
-    `Name — ${NETSUITE_DCR_CLIENT_NAME}`,
-    "Authorization Code Grant — checked",
-    "Public Client — checked",
-    `Redirect URI — ${getNetSuiteRedirectUri()}`,
-    "Scope — NetSuite AI Connector Service (leave other scopes off)",
-    "Dynamic Client Registration — checked",
-    `Dynamic Client Registration Client Name — ${NETSUITE_DCR_CLIENT_NAME}`,
-  ];
-}
+export { getNetSuiteIntegrationChecklist } from "@/lib/netsuite/integration-checklist";
 
 export function getNetSuiteAuthorizeHost(accountId: string): string {
   return `https://${normalizeNetSuiteAccountId(accountId)}.app.netsuite.com`;
