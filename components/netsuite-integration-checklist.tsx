@@ -64,7 +64,11 @@ function CopyableField({
             type="button"
             variant="outline"
           >
-            {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            {copied ? (
+              <Check className="size-3.5" />
+            ) : (
+              <Copy className="size-3.5" />
+            )}
           </Button>
         ) : null}
       </div>

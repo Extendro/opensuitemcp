@@ -29,13 +29,15 @@ export const PROVIDER_META: ProviderMeta[] = [
   {
     id: "openai",
     name: "OpenAI",
-    tagline: "Your OpenAI key. Speed and Reasoning modes map to current GPT models.",
+    tagline:
+      "Your OpenAI key. Speed and Reasoning modes map to current GPT models.",
     docsUrl: "https://platform.openai.com/docs/models",
   },
   {
     id: "anthropic",
     name: "Anthropic",
-    tagline: "Your Anthropic key. Haiku for speed, Sonnet for deeper tool chains.",
+    tagline:
+      "Your Anthropic key. Haiku for speed, Sonnet for deeper tool chains.",
     docsUrl: "https://docs.anthropic.com/en/docs/about-claude/models",
   },
   {

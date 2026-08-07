@@ -1,4 +1,4 @@
-import { REGISTERED_MODELS, type ModelProviderId } from "./model-registry";
+import { type ModelProviderId, REGISTERED_MODELS } from "./model-registry";
 
 export const DEFAULT_CHAT_MODEL: string = "chat-model";
 

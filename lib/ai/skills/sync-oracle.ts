@@ -30,7 +30,9 @@ export function getOracleSkillsDir(): string {
   return path.join(process.cwd(), ".data", "oracle-skills");
 }
 
-export function oracleSkillsLookHealthy(skillsDir = getOracleSkillsDir()): boolean {
+export function oracleSkillsLookHealthy(
+  skillsDir = getOracleSkillsDir(),
+): boolean {
   return existsSync(path.join(skillsDir, ALWAYS_ON_MARKER, "SKILL.md"));
 }
 

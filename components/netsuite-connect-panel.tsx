@@ -486,7 +486,11 @@ export function NetSuiteConnectPanel({
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && renameAccountId && renameDraft.trim()) {
+                if (
+                  e.key === "Enter" &&
+                  renameAccountId &&
+                  renameDraft.trim()
+                ) {
                   e.preventDefault();
                   onRenameAccount(renameAccountId);
                   setRenameAccountId(null);

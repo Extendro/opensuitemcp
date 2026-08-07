@@ -112,10 +112,9 @@ export default function SelfHostDocsPage() {
                 Goes to your LLM:
               </strong>{" "}
               chat messages, tool results returned into the session, and
-              system/skill context. BYOLLM means{" "}
-              <em>your</em> key or private endpoint — not a shared multi-tenant
-              model account inside OpenSuiteMCP. It does not keep ERP data
-              on-device.
+              system/skill context. BYOLLM means <em>your</em> key or private
+              endpoint — not a shared multi-tenant model account inside
+              OpenSuiteMCP. It does not keep ERP data on-device.
             </li>
           </ul>
         </section>
@@ -126,15 +125,14 @@ export default function SelfHostDocsPage() {
           </h2>
           <p className="text-[#f3efe6]/65">
             Most teams run the source-available app behind their reverse proxy
-            with Docker Compose for Postgres, Redis, and optional SearXNG
-            (web search). Production images follow the same app; hosted
+            with Docker Compose for Postgres, Redis, and optional SearXNG (web
+            search). Production images follow the same app; hosted
             opensuitemcp.com is that product plus Google / email auth for
             evaluation — not a different NetSuite data path.
           </p>
           <p className="text-[#f3efe6]/65">
-            Clone,{" "}
-            <code className="text-[#f3efe6]/85">pnpm setup:backend</code>,
-            migrate, sync skills, run. Full commands:{" "}
+            Clone, <code className="text-[#f3efe6]/85">pnpm setup:backend</code>
+            , migrate, sync skills, run. Full commands:{" "}
             <a
               className="text-[#f3efe6] underline underline-offset-4"
               href={OSS_GITHUB_URL}
@@ -148,14 +146,16 @@ export default function SelfHostDocsPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-medium text-[#f3efe6] text-lg">Secrets to plan for</h2>
+          <h2 className="font-medium text-[#f3efe6] text-lg">
+            Secrets to plan for
+          </h2>
           <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
             <li>LLM provider API keys (stored encrypted in your DB)</li>
             <li>Postgres and Redis credentials</li>
             <li>Auth secrets (NextAuth / session)</li>
             <li>
-              NetSuite Integration / DCR client material and redirect URI pointing
-              at <em>your</em> callback URL
+              NetSuite Integration / DCR client material and redirect URI
+              pointing at <em>your</em> callback URL
             </li>
             <li>
               Optional <code className="text-[#f3efe6]/85">GITHUB_TOKEN</code>{" "}
@@ -167,12 +167,12 @@ export default function SelfHostDocsPage() {
         <section className="space-y-3">
           <h2 className="font-medium text-[#f3efe6] text-lg">Auth</h2>
           <p className="text-[#f3efe6]/65">
-            The source-available repo uses email/password (and guest) credentials
-            for sign-in. Hosted OpenSuiteMCP adds Google OAuth for quick trials.
-            Put the app on your corporate IdP / SSO at the reverse-proxy or
-            identity layer if that is your standard — the product itself does not
-            invent a separate enterprise SSO product surface beyond what you
-            deploy.
+            The source-available repo uses email/password (and guest)
+            credentials for sign-in. Hosted OpenSuiteMCP adds Google OAuth for
+            quick trials. Put the app on your corporate IdP / SSO at the
+            reverse-proxy or identity layer if that is your standard — the
+            product itself does not invent a separate enterprise SSO product
+            surface beyond what you deploy.
           </p>
         </section>
 
@@ -182,15 +182,17 @@ export default function SelfHostDocsPage() {
           </h2>
           <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
             <li>
-              <strong className="font-medium text-[#f3efe6]/85">Hosted</strong> —
-              poke at UX, BYOLLM, and NetSuite connect before committing infra.
-              NetSuite still authenticates through AI Connector; we don’t warehouse
-              ERP passwords in a black box.
+              <strong className="font-medium text-[#f3efe6]/85">Hosted</strong>{" "}
+              — poke at UX, BYOLLM, and NetSuite connect before committing
+              infra. NetSuite still authenticates through AI Connector; we don’t
+              warehouse ERP passwords in a black box.
             </li>
             <li>
-              <strong className="font-medium text-[#f3efe6]/85">Self-host</strong>{" "}
-              — when policy, residency, or control requires the app stack
-              (UI, DB, keys, logs) under your org. Prefer this for production
+              <strong className="font-medium text-[#f3efe6]/85">
+                Self-host
+              </strong>{" "}
+              — when policy, residency, or control requires the app stack (UI,
+              DB, keys, logs) under your org. Prefer this for production
               NetSuite AI workflows with privacy or compliance review.
             </li>
           </ul>

@@ -24,7 +24,8 @@ const DOCS = [
   {
     href: "#",
     title: "BYOLLM providers",
-    description: "Bring your own OpenAI, Anthropic, or Google key — coming soon.",
+    description:
+      "Bring your own OpenAI, Anthropic, or Google key — coming soon.",
     ready: false,
   },
   {
@@ -62,12 +63,16 @@ export default function DocsIndexPage() {
                 href={doc.href}
               >
                 <p className="font-medium text-[#f3efe6]">{doc.title}</p>
-                <p className="mt-1 text-[#f3efe6]/55 text-sm">{doc.description}</p>
+                <p className="mt-1 text-[#f3efe6]/55 text-sm">
+                  {doc.description}
+                </p>
               </Link>
             ) : (
               <div className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-4 opacity-70">
                 <p className="font-medium text-[#f3efe6]/80">{doc.title}</p>
-                <p className="mt-1 text-[#f3efe6]/45 text-sm">{doc.description}</p>
+                <p className="mt-1 text-[#f3efe6]/45 text-sm">
+                  {doc.description}
+                </p>
               </div>
             )}
           </li>

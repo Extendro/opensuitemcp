@@ -46,7 +46,9 @@ export default function NetSuiteIntegrationDocsPage() {
 
       <div className="prose-invert mt-10 space-y-10 text-sm leading-relaxed">
         <section className="space-y-3">
-          <h2 className="font-medium text-[#f3efe6] text-lg">1. Prerequisites</h2>
+          <h2 className="font-medium text-[#f3efe6] text-lg">
+            1. Prerequisites
+          </h2>
           <p className="text-[#f3efe6]/65">
             In your NetSuite account, enable and install:
           </p>
@@ -104,7 +106,9 @@ export default function NetSuiteIntegrationDocsPage() {
           <p className="text-[#f3efe6]/65">
             A NetSuite administrator creates this once per account. Values below
             match what the App Portal wizard shows (client name{" "}
-            <code className="text-[#f3efe6]/85">{NETSUITE_DCR_CLIENT_NAME}</code>
+            <code className="text-[#f3efe6]/85">
+              {NETSUITE_DCR_CLIENT_NAME}
+            </code>
             ).{" "}
             {usingPlaceholder
               ? "Set Redirect URI to your deployment callback (AUTH_URL + /api/netsuite/callback), for example:"
@@ -124,7 +128,8 @@ export default function NetSuiteIntegrationDocsPage() {
           </h2>
           <p className="text-[#f3efe6]/65">
             After saving the Integration in NetSuite, return to OpenSuiteMCP and
-            choose <strong className="font-medium text-[#f3efe6]">Check again</strong>.
+            choose{" "}
+            <strong className="font-medium text-[#f3efe6]">Check again</strong>.
             When the probe reports ready, press{" "}
             <strong className="font-medium text-[#f3efe6]">Connect</strong> and
             complete the OAuth consent screen.
@@ -144,7 +149,9 @@ export default function NetSuiteIntegrationDocsPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-medium text-[#f3efe6] text-lg">Oracle documentation</h2>
+          <h2 className="font-medium text-[#f3efe6] text-lg">
+            Oracle documentation
+          </h2>
           <ul className="list-disc space-y-2 pl-5 text-[#f3efe6]/65">
             <li>
               <a
