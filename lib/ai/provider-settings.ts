@@ -1,6 +1,6 @@
 import "server-only";
 import { decrypt, encrypt } from "../encryption";
-import { assertPublicHttpsUrl } from "./custom-provider-url";
+import { assertAllowedProviderUrl } from "./custom-provider-url";
 import {
   type AiProviderConfig,
   type AiProviderEntry,
@@ -117,9 +117,9 @@ async function encryptIncomingEntry(
 
   if (incoming.type === "custom") {
     if (!incoming.baseUrl?.trim()) {
-      throw new Error("Custom providers require a public HTTPS base URL.");
+      throw new Error("Custom providers require a base URL.");
     }
-    await assertPublicHttpsUrl(incoming.baseUrl);
+    await assertAllowedProviderUrl(incoming.baseUrl);
     if (!incoming.speedModelId?.trim() || !incoming.reasoningModelId?.trim()) {
       throw new Error(
         "Pick Speed and Reasoning models from the custom endpoint list.",

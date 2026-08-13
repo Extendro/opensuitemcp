@@ -12,7 +12,7 @@ export async function fetchProviderModels(params: {
   switch (params.type) {
     case "custom": {
       if (!params.baseUrl?.trim()) {
-        throw new Error("Enter a public HTTPS base URL.");
+        throw new Error("Enter a base URL.");
       }
       return fetchOpenAiCompatibleModels({
         baseUrl: params.baseUrl,

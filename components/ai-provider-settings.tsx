@@ -66,7 +66,7 @@ const TYPE_OPTIONS: Array<{ value: AiProviderType; label: string }> = [
   { value: "google", label: "Google (Gemini)" },
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "openai", label: "OpenAI (GPT)" },
-  { value: "custom", label: "Custom (OpenAI-compatible HTTPS)" },
+  { value: "custom", label: "Custom (OpenAI-compatible)" },
 ];
 
 export function AiProviderSettings({
@@ -699,7 +699,7 @@ function validateDraft(
   }
   if (draft.type === "custom") {
     if (!draft.baseUrl?.trim()) {
-      return "Enter a public HTTPS base URL.";
+      return "Enter a base URL.";
     }
     if (!draft.speedModelId?.trim() || !draft.reasoningModelId?.trim()) {
       return "Reload models and pick Speed and Reasoning.";
@@ -759,11 +759,11 @@ function ProviderFields({
       {entry.type === "custom" ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor={`${entry.id}-url`}>HTTPS base URL</Label>
+            <Label htmlFor={`${entry.id}-url`}>Base URL</Label>
             <Input
               id={`${entry.id}-url`}
               onChange={(event) => onChange({ baseUrl: event.target.value })}
-              placeholder="https://llm.example.com/v1"
+              placeholder="http://localhost:11434/v1"
               value={entry.baseUrl ?? ""}
             />
           </div>

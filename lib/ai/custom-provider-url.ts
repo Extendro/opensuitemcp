@@ -70,7 +70,48 @@ export function isBlockedIpAddress(ip: string): boolean {
   return true;
 }
 
-export async function assertPublicHttpsUrl(
+function isLocalhostName(hostname: string): boolean {
+  return hostname === "localhost" || hostname.endsWith(".localhost");
+}
+
+function unwrapIpv6Hostname(hostname: string): string {
+  if (hostname.startsWith("[") && hostname.endsWith("]")) {
+    return hostname.slice(1, -1);
+  }
+  return hostname;
+}
+
+function isLinkLocalOrMetadataIp(ip: string): boolean {
+  const normalized = ip.trim().toLowerCase();
+  if (normalized.startsWith("::ffff:")) {
+    return isLinkLocalOrMetadataIp(normalized.slice(7));
+  }
+  if (BLOCKED_HOSTS.has(normalized) || normalized === "fd00:ec2::254") {
+    return true;
+  }
+  if (normalized.startsWith("fe80:")) {
+    return true;
+  }
+
+  const version = isIP(normalized);
+  if (version === 4) {
+    const parts = normalized
+      .split(".")
+      .map((part) => Number.parseInt(part, 10));
+    const [a, b] = parts;
+    if (a === undefined || b === undefined) {
+      return true;
+    }
+    if (a === 0) {
+      return true;
+    }
+    return a === 169 && b === 254;
+  }
+
+  return false;
+}
+
+export async function assertAllowedProviderUrl(
   raw: string,
   resolveHost: (hostname: string) => Promise<string[]> = lookupAllAddresses,
 ): Promise<URL> {
@@ -78,24 +119,31 @@ export async function assertPublicHttpsUrl(
   try {
     parsed = new URL(raw.trim());
   } catch {
-    throw new Error("Enter a valid HTTPS URL.");
+    throw new Error("Enter a valid URL.");
   }
 
-  if (parsed.protocol !== "https:") {
-    throw new Error("Custom providers require a public HTTPS endpoint.");
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Custom providers require an HTTP or HTTPS URL.");
   }
 
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = unwrapIpv6Hostname(parsed.hostname.toLowerCase());
   if (!hostname || BLOCKED_HOSTS.has(hostname)) {
     throw new Error("That host is not allowed for custom AI providers.");
   }
 
-  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
-    throw new Error("Custom providers require a public HTTPS endpoint.");
+  const localhost = isLocalhostName(hostname);
+  const isIp = isIP(hostname) !== 0;
+
+  if (parsed.protocol === "http:" && !localhost && !isIp) {
+    throw new Error("HTTP is only allowed for localhost and IP addresses.");
   }
 
-  if (isIP(hostname) && isBlockedIpAddress(hostname)) {
-    throw new Error("Private or link-local addresses are not allowed.");
+  if (isIp && isLinkLocalOrMetadataIp(hostname)) {
+    throw new Error("That host is not allowed for custom AI providers.");
+  }
+
+  if (localhost || isIp) {
+    return parsed;
   }
 
   const addresses = await resolveHost(hostname);
@@ -123,7 +171,7 @@ export async function fetchOpenAiCompatibleModels(params: {
   baseUrl: string;
   apiKey?: string | null;
 }): Promise<CustomModelOption[]> {
-  const parsed = await assertPublicHttpsUrl(params.baseUrl);
+  const parsed = await assertAllowedProviderUrl(params.baseUrl);
   const url = openaiCompatibleModelsUrl(parsed.toString());
   const headers: Record<string, string> = {
     Accept: "application/json",

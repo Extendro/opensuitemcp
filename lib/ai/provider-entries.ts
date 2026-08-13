@@ -251,7 +251,10 @@ export function legacyColumnsFromConfig(config: AiProviderConfig): {
     googleApiKey: google?.apiKey ?? null,
     anthropicApiKey: anthropic?.apiKey ?? null,
     openaiApiKey: openai?.apiKey ?? null,
-    aiProvider: hostedDefault?.type ?? "google",
+    aiProvider:
+      hostedDefault && isHostedAiProviderType(hostedDefault.type)
+        ? hostedDefault.type
+        : "google",
     maxIterations: clampMaxIterations(
       hostedDefault?.maxIterations ?? defaultEntry?.maxIterations,
     ),
