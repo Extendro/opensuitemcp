@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.0.1] - 2026-08-15
+
+### Changed
+
+- **Product docs** — guides live only at [opensuitemcp.com/docs](https://opensuitemcp.com/docs). Self-hosted `/docs` redirects there (308). App Portal setup links open the public site.
+- NOTICE: hosted evaluation is live at opensuitemcp.com
+- README: skills apply to new messages (not per-thread); custom endpoint wording
+
+---
+
 ## [4.0.0] - 2026-08-14
 
 ### ✨ Added

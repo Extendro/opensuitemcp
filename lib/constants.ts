@@ -10,4 +10,7 @@ export const isTestEnvironment = Boolean(
 
 export const guestRegex = /^guest-\d+$/;
 
+/** Canonical product docs — not shipped inside self-hosted app instances. */
+export const PUBLIC_DOCS_ORIGIN = "https://opensuitemcp.com";
+
 export const DUMMY_PASSWORD = generateDummyPassword();

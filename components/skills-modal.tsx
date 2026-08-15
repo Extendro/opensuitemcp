@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { PUBLIC_DOCS_ORIGIN } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { toast } from "./toast";
 
@@ -582,6 +583,15 @@ export function SkillsPanel({ active }: SkillsPanelProps) {
           </p>
         </div>
         <div className="hidden shrink-0 flex-col gap-1 text-xs sm:flex">
+          <a
+            className="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            href={`${PUBLIC_DOCS_ORIGIN}/docs/skills`}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            OpenSuiteMCP guide
+            <ExternalLink className="size-3" />
+          </a>
           <a
             className="inline-flex items-center gap-1 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             href={ORACLE_SKILLS_GITHUB_URL}

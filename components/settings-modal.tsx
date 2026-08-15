@@ -37,7 +37,7 @@ import {
   parseAiProviderConfig,
 } from "@/lib/ai/provider-entries";
 import { getSearchDomainUrl, searchDomains } from "@/lib/ai/search-domains";
-import { guestRegex } from "@/lib/constants";
+import { guestRegex, PUBLIC_DOCS_ORIGIN } from "@/lib/constants";
 import type { NetSuiteAccountEntry } from "@/lib/netsuite/accounts";
 import {
   getNetSuiteNewIntegrationUrl,
@@ -133,6 +133,12 @@ const SECTION_META: Record<
     icon: Sparkles,
     title: "AI Provider",
     subtitle: "Bring your own LLM key and configure providers",
+    docsLinks: [
+      {
+        label: "BYOLLM guide",
+        href: `${PUBLIC_DOCS_ORIGIN}/docs/byollm`,
+      },
+    ],
   },
   netsuite: {
     icon: Cloud,
@@ -141,7 +147,7 @@ const SECTION_META: Record<
     docsLinks: [
       {
         label: "Setup guide",
-        href: "/docs/netsuite-integration",
+        href: `${PUBLIC_DOCS_ORIGIN}/docs/netsuite-integration`,
       },
       {
         label: "AI Connector",
@@ -969,7 +975,10 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
   )?.type;
   const headerDocsLinks =
     section === "provider"
-      ? [PROVIDER_DOCS[defaultProviderType ?? "google"]]
+      ? [
+          ...(sectionMeta.docsLinks ?? []),
+          PROVIDER_DOCS[defaultProviderType ?? "google"],
+        ]
       : sectionMeta.docsLinks;
 
   const handlePersistProviders = async (config: AiProviderConfig) => {

@@ -10,7 +10,7 @@ Bring your own LLM keys (**Google Gemini**, **Anthropic Claude**, or **OpenAI GP
 
 **Star this repo** if it helps your NetSuite team — it makes the project discoverable.
 
-**Current release:** [v4.0.0](https://github.com/unstackedapps/opensuitemcp/releases/tag/v4.0.0) · [Changelog](CHANGELOG.md)
+**Current release:** [v4.0.1](https://github.com/unstackedapps/opensuitemcp/releases/tag/v4.0.1) · [Changelog](CHANGELOG.md)
 
 <img src="./docs/screenshot-chat.png" alt="OpenSuiteMCP chat UI" width="100%" />
 
@@ -19,8 +19,8 @@ _Main chat UI._
 ## What’s in 4.0
 
 - **App Portal** — Chats, Skills, Prompts, AI Provider, NetSuite, Web Search, Timezone, and Account in one panel
-- **Multiple AI providers** — named Google / Anthropic / OpenAI (or custom HTTPS) keys; Speed / Reasoning per chat
-- **SuiteCloud Agent Skills** — Oracle pack + custom `SKILL.md`; toggle into the system prompt per session
+- **Multiple AI providers** — named Google / Anthropic / OpenAI (or a custom OpenAI-compatible endpoint) keys; Speed / Reasoning per chat
+- **SuiteCloud Agent Skills** — Oracle pack + custom `SKILL.md`; toggles apply to new messages
 - **Companion Prompt Library** — Browse, fill placeholders, send into chat
 - **NetSuite MCP** — Multiple connected accounts, per-account tools, encrypted OAuth tokens
 - **BYOLLM** — Your API keys; no shared multi-tenant model account in this app
@@ -155,7 +155,7 @@ Self-host defaults are generous. Override with env vars if needed:
 
 **Free:** your organization may self-host for its own internal use. **Paid:** commercial delivery, paid implementation, or paid support of this product — only via [Unstacked Apps](https://www.unstackedapps.com/) (`support@unstackedapps.com`). Third parties may not charge to implement or commercially support this codebase.
 
-After go-live, update via release tags — see [docs/upgrades](https://opensuitemcp.com/docs/upgrades) (also at `/docs/upgrades` when self-hosting).
+After go-live, update via release tags — see [docs/upgrades](https://opensuitemcp.com/docs/upgrades).
 
 - [LICENSE](LICENSE) — Sustainable Use License
 - [NOTICE.md](NOTICE.md) — Usage notice

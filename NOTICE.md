@@ -2,7 +2,7 @@
 
 ## Early Phase Project
 
-This is an **early-phase project** under active development. Unstacked Apps, LLC intends to host an official version at the opensuitemcp domain when resources and time permit.
+This is an **early-phase project** under active development. An official hosted evaluation environment is available at [opensuitemcp.com](https://opensuitemcp.com). The public repository remains the source of truth for self-hosting.
 
 ## Permitted Uses
 

@@ -19,7 +19,7 @@ export type IntegrationChecklistStep = {
 };
 
 /**
- * Shared Integration setup steps for docs + App Portal wizard.
+ * Shared Integration setup steps for the public docs and App Portal.
  * Pass redirectUri from probe when available; otherwise uses env-based callback.
  */
 export function getIntegrationSetupSteps(options?: {

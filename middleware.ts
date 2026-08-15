@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
+import { guestRegex, isDevelopmentEnvironment, PUBLIC_DOCS_ORIGIN } from "./lib/constants";
 
-function isPublicDocsPath(pathname: string): boolean {
+function isDocsPath(pathname: string): boolean {
   return pathname === "/docs" || pathname.startsWith("/docs/");
 }
 
@@ -21,8 +21,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isPublicDocsPath(pathname)) {
-    return NextResponse.next();
+  if (isDocsPath(pathname)) {
+    const dest = new URL(pathname, PUBLIC_DOCS_ORIGIN);
+    dest.search = request.nextUrl.search;
+    return NextResponse.redirect(dest, 308);
   }
 
   const token = await getToken({
