@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { guestRegex, isDevelopmentEnvironment, PUBLIC_DOCS_ORIGIN } from "./lib/constants";
+import {
+  guestRegex,
+  isDevelopmentEnvironment,
+  PUBLIC_DOCS_ORIGIN,
+} from "./lib/constants";
 
 function isDocsPath(pathname: string): boolean {
   return pathname === "/docs" || pathname.startsWith("/docs/");
