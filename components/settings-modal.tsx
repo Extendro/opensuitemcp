@@ -13,12 +13,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import {
-  EyeIcon,
-  EyeOffIcon,
-  LoaderIcon,
-  WarningIcon,
-} from "@/components/icons";
+import { AiProviderSettings } from "@/components/ai-provider-settings";
+import { LoaderIcon } from "@/components/icons";
 import {
   NetSuiteConnectPanel,
   type NetSuiteDcrProbeState,
@@ -33,21 +29,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import {
+  type AiProviderConfig,
+  ensureSeededProviderConfig,
+  parseAiProviderConfig,
+} from "@/lib/ai/provider-entries";
 import { getSearchDomainUrl, searchDomains } from "@/lib/ai/search-domains";
 import { guestRegex } from "@/lib/constants";
 import type { NetSuiteAccountEntry } from "@/lib/netsuite/accounts";
 import {
   getNetSuiteNewIntegrationUrl,
+  isNetSuiteAccountConnected,
   normalizeNetSuiteAccountId,
 } from "@/lib/netsuite/accounts";
 import { ORACLE_DOC_LINKS } from "@/lib/netsuite/integration-checklist";
@@ -74,7 +68,7 @@ function PortalPanelHeader({
   docsLinks,
 }: PortalPanelHeaderProps) {
   return (
-    <div className="flex shrink-0 items-start justify-between gap-3 border-border/60 border-b px-4 py-3 sm:px-5">
+    <div className="flex shrink-0 items-start justify-between gap-3 border-border/60 border-b py-3 pl-4 pr-8 sm:pl-5 sm:pr-9">
       <div className="min-w-0 space-y-1">
         <p className="flex items-center gap-1.5 font-medium text-sm">
           <Icon className="size-3.5 text-muted-foreground" />
@@ -105,9 +99,13 @@ function PortalPanelHeader({
 }
 
 const PROVIDER_DOCS: Record<
-  "google" | "anthropic" | "openai",
+  "google" | "anthropic" | "openai" | "custom",
   { label: string; href: string }
 > = {
+  custom: {
+    label: "OpenAI-compatible APIs",
+    href: "https://platform.openai.com/docs/api-reference",
+  },
   openai: {
     label: "OpenAI models",
     href: "https://platform.openai.com/docs/models",
@@ -134,8 +132,7 @@ const SECTION_META: Record<
   provider: {
     icon: Sparkles,
     title: "AI Provider",
-    subtitle:
-      "Bring your own LLM key and choose which provider powers chat responses.",
+    subtitle: "Bring your own LLM key and configure providers",
   },
   netsuite: {
     icon: Cloud,
@@ -209,6 +206,7 @@ async function fetchSettings() {
       timezone: string;
       searchDomainIds: string[];
       maxIterations: string;
+      aiProviders?: AiProviderConfig;
     };
   } catch (error) {
     console.error("[Settings] Error in fetchSettings:", error);
@@ -216,12 +214,18 @@ async function fetchSettings() {
   }
 }
 
+type NetSuiteStatusResponse = {
+  connected: boolean;
+  connectedAccountIds?: string[];
+  activeAccountId?: string | null;
+};
+
 async function fetchNetSuiteStatus() {
   const response = await fetch("/api/netsuite/status");
   if (!response.ok) {
-    return { connected: false };
+    return { connected: false, connectedAccountIds: [] as string[] };
   }
-  return response.json() as Promise<{ connected: boolean }>;
+  return response.json() as Promise<NetSuiteStatusResponse>;
 }
 
 type SettingsPanelProps = {
@@ -325,9 +329,6 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
       }>;
     },
   );
-  const googleApiKeyId = useId();
-  const anthropicApiKeyId = useId();
-  const openaiApiKeyId = useId();
   const timezoneId = useId();
   const [settingsCacheKey, setSettingsCacheKey] = useState<string | null>(null);
   const { mutate: globalMutate } = useSWRConfig();
@@ -357,15 +358,6 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     fetchNetSuiteStatus,
   );
 
-  const [googleApiKey, setGoogleApiKey] = useState("");
-  const [anthropicApiKey, setAnthropicApiKey] = useState("");
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
-  const [aiProvider, setAiProvider] = useState<
-    "google" | "anthropic" | "openai"
-  >("google");
-  const [showGoogleApiKey, setShowGoogleApiKey] = useState(false);
-  const [showAnthropicApiKey, setShowAnthropicApiKey] = useState(false);
-  const [showOpenaiApiKey, setShowOpenaiApiKey] = useState(false);
   const [netsuiteAccounts, setNetsuiteAccounts] = useState<
     NetSuiteAccountEntry[]
   >([]);
@@ -377,8 +369,9 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
   const [timezoneSearch, setTimezoneSearch] = useState("");
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [searchDomainIds, setSearchDomainIds] = useState<string[]>([]);
-  const [maxIterations, setMaxIterations] = useState("10");
-  const maxIterationsId = useId();
+  const [aiProviders, setAiProviders] = useState<AiProviderConfig>(() =>
+    ensureSeededProviderConfig(null),
+  );
   const [isConnectingNetSuite, setIsConnectingNetSuite] = useState(false);
   const [dcrProbe, setDcrProbe] = useState<NetSuiteDcrProbeState>({
     status: "idle",
@@ -435,17 +428,12 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
 
     // Populate form when settings are available
     if (typeof settings === "object" && "aiProvider" in settings) {
-      setGoogleApiKey(settings.googleApiKey ?? "");
-      setAnthropicApiKey(settings.anthropicApiKey ?? "");
-      setOpenaiApiKey(settings.openaiApiKey ?? "");
-      // Coerce unknown or deprecated provider values to google
       const provider =
         settings.aiProvider === "google" ||
         settings.aiProvider === "anthropic" ||
         settings.aiProvider === "openai"
           ? settings.aiProvider
           : "google";
-      setAiProvider(provider);
       const accounts = settings.netsuiteAccounts ?? [];
       const activeId =
         settings.netsuiteAccountId ?? accounts[0]?.accountId ?? "";
@@ -458,7 +446,20 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
       );
       setTimezone(settings.timezone ?? "UTC");
       setSearchDomainIds(settings.searchDomainIds ?? []);
-      setMaxIterations(settings.maxIterations ?? "10");
+      setAiProviders(
+        ensureSeededProviderConfig(
+          parseAiProviderConfig(
+            "aiProviders" in settings ? settings.aiProviders : null,
+          ),
+          {
+            googleApiKey: settings.googleApiKey,
+            anthropicApiKey: settings.anthropicApiKey,
+            openaiApiKey: settings.openaiApiKey,
+            aiProvider: provider,
+            maxIterations: settings.maxIterations,
+          },
+        ),
+      );
       initializedForThisOpenRef.current = true;
     } else {
       console.warn("[Settings] Settings object invalid:", settings);
@@ -536,16 +537,12 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
         settings?.netsuiteAccountId ||
         null;
 
-      const payload = {
-        googleApiKey: googleApiKey?.trim() || null,
-        anthropicApiKey: anthropicApiKey?.trim() || null,
-        openaiApiKey: openaiApiKey?.trim() || null,
-        aiProvider: aiProvider,
+      const payload: Record<string, unknown> = {
         netsuiteAccountId: activeToSave,
         netsuiteAccounts: accountsToSave,
         timezone: timezone?.trim() || "UTC",
         searchDomainIds: effectiveSearchDomainIds,
-        maxIterations: maxIterations?.trim() || "10",
+        aiProviders,
       };
 
       const response = await fetch("/api/settings", {
@@ -836,30 +833,40 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     }
   };
 
-  const handleNetSuiteConnect = async () => {
-    if (netsuiteStatus?.connected) {
-      try {
-        const response = await fetch("/api/netsuite/disconnect", {
-          method: "POST",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to disconnect");
-        }
-        toast({
-          type: "success",
-          description: "NetSuite account disconnected successfully",
-        });
-        refreshNetsuiteStatus();
-      } catch {
-        toast({
-          type: "error",
-          description: "Failed to disconnect NetSuite account",
-        });
+  const handleNetSuiteDisconnect = async (accountId: string) => {
+    const normalized = normalizeNetSuiteAccountId(accountId);
+    try {
+      const response = await fetch("/api/netsuite/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId: normalized }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Failed to disconnect");
       }
+      toast({
+        type: "success",
+        description: "NetSuite account disconnected successfully",
+      });
+      await refreshNetsuiteStatus();
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to disconnect NetSuite account",
+      });
+    }
+  };
+
+  const handleNetSuiteConnect = async () => {
+    if (!netsuiteAccountId || dcrProbe.status !== "ready") {
       return;
     }
 
-    if (!netsuiteAccountId || dcrProbe.status !== "ready") {
+    if (isNetSuiteAccountConnected(selectedAccountId, netsuiteStatus)) {
       return;
     }
 
@@ -937,19 +944,47 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
     });
   };
 
-  const isNetSuiteConnected = netsuiteStatus?.connected ?? false;
+  const connectedAccountIds = (
+    netsuiteStatus?.connectedAccountIds ??
+    (netsuiteStatus?.connected && selectedAccountId ? [selectedAccountId] : [])
+  ).map((id) => normalizeNetSuiteAccountId(id));
+  const isSelectedAccountConnected = isNetSuiteAccountConnected(
+    selectedAccountId,
+    {
+      connected: netsuiteStatus?.connected,
+      connectedAccountIds,
+    },
+  );
   const canConnectNetSuite =
     Boolean(selectedAccountId) &&
     !isConnectingNetSuite &&
-    (isNetSuiteConnected || dcrProbe.status === "ready");
+    !isSelectedAccountConnected &&
+    dcrProbe.status === "ready";
 
   // Show skeletons while loading
   const showSkeletons = isLoading;
   const sectionMeta = SECTION_META[section];
+  const defaultProviderType = aiProviders.providers.find(
+    (entry) => entry.id === aiProviders.defaultId,
+  )?.type;
   const headerDocsLinks =
     section === "provider"
-      ? [PROVIDER_DOCS[aiProvider]]
+      ? [PROVIDER_DOCS[defaultProviderType ?? "google"]]
       : sectionMeta.docsLinks;
+
+  const handlePersistProviders = async (config: AiProviderConfig) => {
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aiProviders: config }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to save AI providers");
+    }
+    await refreshSettings();
+    await globalMutate("settings");
+  };
 
   return (
     <form
@@ -966,238 +1001,14 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
         title={sectionMeta.title}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+      <div className="min-h-0 flex-1 overflow-y-scroll py-4 pl-4 pr-4 [scrollbar-gutter:stable] sm:pl-5 sm:pr-5">
         {section === "provider" ? (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label>Provider</Label>
-              {showSkeletons || !settings ? (
-                <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2">
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              ) : (
-                <Select
-                  key={`provider-${aiProvider}`}
-                  onValueChange={(value: "google" | "anthropic" | "openai") => {
-                    setAiProvider(value);
-                  }}
-                  value={aiProvider}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="google">Google (Gemini)</SelectItem>
-                    <SelectItem value="anthropic">
-                      Anthropic (Claude)
-                    </SelectItem>
-                    <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            <div className="space-y-4 border-t border-border/60 pt-4">
-              <div>
-                <p className="font-medium text-sm">API keys & limits</p>
-                <p className="text-muted-foreground text-xs">
-                  API key and reasoning limits for the selected provider.
-                </p>
-              </div>
-
-              {aiProvider === "openai" && (
-                <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3">
-                  <div className="flex items-start gap-2">
-                    <div className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-500">
-                      <WarningIcon size={16} />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="font-medium text-sm text-yellow-900 dark:text-yellow-100">
-                        Organization Verification Required
-                      </p>
-                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                        For enhanced reasoning features, verify your
-                        organization at{" "}
-                        <a
-                          className="text-primary underline hover:no-underline"
-                          href="https://platform.openai.com/settings/organization/general"
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          platform.openai.com/settings/organization/general
-                        </a>
-                        . Propagation can take up to 15 minutes.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {aiProvider === "google" && (
-                <div className="space-y-2">
-                  <Label htmlFor={googleApiKeyId}>Google API Key</Label>
-                  <p className="text-muted-foreground text-xs">
-                    Get a key at{" "}
-                    <a
-                      className="text-primary underline hover:no-underline"
-                      href="https://aistudio.google.com/apikey"
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      aistudio.google.com/apikey
-                    </a>
-                    .
-                  </p>
-                  <div className="relative">
-                    <Input
-                      autoComplete="off"
-                      className="pr-10"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      data-lpignore="true"
-                      id={googleApiKeyId}
-                      name="google-api-key"
-                      onChange={(e) => setGoogleApiKey(e.target.value)}
-                      placeholder="Enter your Google API key"
-                      type={showGoogleApiKey ? "text" : "password"}
-                      value={googleApiKey}
-                    />
-                    <Button
-                      className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowGoogleApiKey(!showGoogleApiKey)}
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      {showGoogleApiKey ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {aiProvider === "anthropic" && (
-                <div className="space-y-2">
-                  <Label htmlFor={anthropicApiKeyId}>Anthropic API Key</Label>
-                  <p className="text-muted-foreground text-xs">
-                    Get a key at{" "}
-                    <a
-                      className="text-primary underline hover:no-underline"
-                      href="https://console.anthropic.com/"
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      console.anthropic.com
-                    </a>
-                    .
-                  </p>
-                  <div className="relative">
-                    <Input
-                      autoComplete="off"
-                      className="pr-10"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      data-lpignore="true"
-                      id={anthropicApiKeyId}
-                      name="anthropic-api-key"
-                      onChange={(e) => setAnthropicApiKey(e.target.value)}
-                      placeholder="Enter your Anthropic API key"
-                      type={showAnthropicApiKey ? "text" : "password"}
-                      value={anthropicApiKey}
-                    />
-                    <Button
-                      className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
-                      onClick={() =>
-                        setShowAnthropicApiKey(!showAnthropicApiKey)
-                      }
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      {showAnthropicApiKey ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {aiProvider === "openai" && (
-                <div className="space-y-2">
-                  <Label htmlFor={openaiApiKeyId}>OpenAI API Key</Label>
-                  <p className="text-muted-foreground text-xs">
-                    Get a key at{" "}
-                    <a
-                      className="text-primary underline hover:no-underline"
-                      href="https://platform.openai.com/api-keys"
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      platform.openai.com/api-keys
-                    </a>
-                    .
-                  </p>
-                  <div className="relative">
-                    <Input
-                      autoComplete="off"
-                      className="pr-10"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      data-lpignore="true"
-                      id={openaiApiKeyId}
-                      name="openai-api-key"
-                      onChange={(e) => setOpenaiApiKey(e.target.value)}
-                      placeholder="Enter your OpenAI API key"
-                      type={showOpenaiApiKey ? "text" : "password"}
-                      value={openaiApiKey}
-                    />
-                    <Button
-                      className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowOpenaiApiKey(!showOpenaiApiKey)}
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      {showOpenaiApiKey ? (
-                        <EyeOffIcon size={16} />
-                      ) : (
-                        <EyeIcon size={16} />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor={maxIterationsId}>Max Reasoning Steps</Label>
-                <p className="text-muted-foreground text-xs">
-                  Maximum reasoning steps before stopping (1-20).
-                </p>
-                <Input
-                  id={maxIterationsId}
-                  max={20}
-                  min={1}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === "" || /^\d+$/.test(value)) {
-                      const num = Number.parseInt(value, 10);
-                      if (value === "" || (num >= 1 && num <= 20)) {
-                        setMaxIterations(value);
-                      }
-                    }
-                  }}
-                  placeholder="10"
-                  type="number"
-                  value={maxIterations}
-                />
-              </div>
-            </div>
-          </div>
+          <AiProviderSettings
+            aiProviders={aiProviders}
+            onAiProvidersChange={setAiProviders}
+            onPersistProviders={handlePersistProviders}
+            showSkeletons={showSkeletons || !settings}
+          />
         ) : null}
 
         {section === "netsuite" ? (
@@ -1222,7 +1033,8 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
               canConnect={canConnectNetSuite}
               dcrProbe={dcrProbe}
               editingLabels={editingLabels}
-              isConnected={isNetSuiteConnected}
+              connectedAccountIds={connectedAccountIds}
+              isConnected={isSelectedAccountConnected}
               isConnecting={isConnectingNetSuite}
               newAccountId={newAccountId}
               newAccountLabel={newAccountLabel}
@@ -1231,6 +1043,9 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
               }}
               onConnect={() => {
                 void handleNetSuiteConnect();
+              }}
+              onDisconnect={(accountId) => {
+                void handleNetSuiteDisconnect(accountId);
               }}
               onEditingLabelChange={(accountId, value) => {
                 setEditingLabels((previous) => ({
@@ -1254,6 +1069,7 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
                 void handleSelectNetSuiteAccount(accountId);
               }}
               selectedAccountId={selectedAccountId}
+              settingsActive={active && section === "netsuite"}
               showSkeletons={showSkeletons}
             />
           )
@@ -1423,26 +1239,38 @@ export function SettingsPanel({ active, section }: SettingsPanelProps) {
         ) : null}
       </div>
 
-      <DialogFooter className="shrink-0 gap-2 border-t border-border/60 px-4 py-3 sm:justify-end">
-        <Button onClick={() => closePortal()} type="button" variant="outline">
-          Cancel
-        </Button>
-        <Button
-          disabled={isSaving || isLoading}
-          onClick={() => handleSave()}
-          type="button"
-        >
-          {isSaving ? (
-            <>
-              <span className="mr-2 inline-block animate-spin">
-                <LoaderIcon size={16} />
-              </span>
-              Saving...
-            </>
-          ) : (
-            "Save"
-          )}
-        </Button>
+      <DialogFooter className="shrink-0 gap-2 border-t border-border/60 py-3 pl-4 pr-8 sm:justify-end sm:pl-5 sm:pr-9">
+        {section === "netsuite" ? (
+          <Button onClick={() => closePortal()} type="button">
+            Close
+          </Button>
+        ) : (
+          <>
+            <Button
+              onClick={() => closePortal()}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={isSaving || isLoading}
+              onClick={() => handleSave()}
+              type="button"
+            >
+              {isSaving ? (
+                <>
+                  <span className="mr-2 inline-block animate-spin">
+                    <LoaderIcon size={16} />
+                  </span>
+                  Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </>
+        )}
       </DialogFooter>
     </form>
   );

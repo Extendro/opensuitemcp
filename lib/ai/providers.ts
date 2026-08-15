@@ -1,11 +1,22 @@
-import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI, google } from "@ai-sdk/google";
-import { createOpenAI, openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
 import { apiModelFor } from "./model-registry";
+import {
+  type AiProviderType,
+  openaiCompatibleBaseUrl,
+} from "./provider-entries";
 
-function createGoogleProvider(apiKey?: string) {
+/** Pin hosted vendors so OPENAI_BASE_URL / ANTHROPIC_BASE_URL (e.g. LM Studio) cannot hijack them. */
+const HOSTED_OPENAI_BASE_URL = "https://api.openai.com/v1";
+const HOSTED_ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1";
+
+function createGoogleProvider(
+  apiKey?: string,
+  modelOverrides?: { speedModelId?: string; reasoningModelId?: string },
+) {
   const googleProvider = apiKey ? createGoogleGenerativeAI({ apiKey }) : google;
 
   if (apiKey) {
@@ -19,8 +30,11 @@ function createGoogleProvider(apiKey?: string) {
     );
   }
 
-  const speed = apiModelFor("google", "speed");
-  const reasoning = apiModelFor("google", "reasoning");
+  const speed =
+    modelOverrides?.speedModelId?.trim() || apiModelFor("google", "speed");
+  const reasoning =
+    modelOverrides?.reasoningModelId?.trim() ||
+    apiModelFor("google", "reasoning");
 
   return customProvider({
     languageModels: {
@@ -31,8 +45,14 @@ function createGoogleProvider(apiKey?: string) {
   });
 }
 
-function createAnthropicProvider(apiKey?: string) {
-  const anthropicProvider = apiKey ? createAnthropic({ apiKey }) : anthropic;
+function createAnthropicProvider(
+  apiKey?: string,
+  modelOverrides?: { speedModelId?: string; reasoningModelId?: string },
+) {
+  const anthropicProvider = createAnthropic({
+    apiKey,
+    baseURL: HOSTED_ANTHROPIC_BASE_URL,
+  });
 
   if (apiKey) {
     console.log(
@@ -45,8 +65,11 @@ function createAnthropicProvider(apiKey?: string) {
     );
   }
 
-  const speed = apiModelFor("anthropic", "speed");
-  const reasoning = apiModelFor("anthropic", "reasoning");
+  const speed =
+    modelOverrides?.speedModelId?.trim() || apiModelFor("anthropic", "speed");
+  const reasoning =
+    modelOverrides?.reasoningModelId?.trim() ||
+    apiModelFor("anthropic", "reasoning");
 
   return customProvider({
     languageModels: {
@@ -58,8 +81,40 @@ function createAnthropicProvider(apiKey?: string) {
   });
 }
 
-function createOpenAIProvider(apiKey?: string) {
-  const openaiProvider = apiKey ? createOpenAI({ apiKey }) : openai;
+function createOpenAICompatibleProvider(params: {
+  apiKey?: string | null;
+  baseUrl?: string;
+  speedModelId: string;
+  reasoningModelId: string;
+}) {
+  const openaiProvider = createOpenAI({
+    apiKey: params.apiKey?.trim() || "ollama",
+    name: "custom",
+    ...(params.baseUrl
+      ? { baseURL: openaiCompatibleBaseUrl(params.baseUrl) }
+      : {}),
+  });
+
+  // Chat Completions — local/compatible servers (LM Studio, vLLM, etc.) do not implement /v1/responses.
+  return customProvider({
+    languageModels: {
+      "chat-model": openaiProvider.chat(params.speedModelId) as never,
+      "chat-model-reasoning": openaiProvider.chat(
+        params.reasoningModelId,
+      ) as never,
+      "title-model": openaiProvider.chat(params.speedModelId) as never,
+    },
+  });
+}
+
+function createOpenAIProvider(
+  apiKey?: string,
+  modelOverrides?: { speedModelId?: string; reasoningModelId?: string },
+) {
+  const openaiProvider = createOpenAI({
+    apiKey,
+    baseURL: HOSTED_OPENAI_BASE_URL,
+  });
 
   if (apiKey) {
     console.log(
@@ -72,8 +127,11 @@ function createOpenAIProvider(apiKey?: string) {
     );
   }
 
-  const speed = apiModelFor("openai", "speed");
-  const reasoning = apiModelFor("openai", "reasoning");
+  const speed =
+    modelOverrides?.speedModelId?.trim() || apiModelFor("openai", "speed");
+  const reasoning =
+    modelOverrides?.reasoningModelId?.trim() ||
+    apiModelFor("openai", "reasoning");
 
   return customProvider({
     languageModels: {
@@ -101,15 +159,22 @@ export const myProvider = isTestEnvironment
     })()
   : createGoogleProvider();
 
+export type GetUserProviderOptions = {
+  baseUrl?: string;
+  speedModelId?: string;
+  reasoningModelId?: string;
+};
+
 /**
  * Create a provider with a user-specific API key
- * @param apiKey - User's API key (encrypted, will be decrypted)
- * @param provider - Provider type: "google", "anthropic", or "openai"
+ * @param apiKey - User's API key (already decrypted)
+ * @param provider - Provider type
  * @throws Error if no API key is provided and env var is not set
  */
 export function getUserProvider(
   apiKey?: string | null,
-  provider: "google" | "anthropic" | "openai" = "google",
+  provider: AiProviderType = "google",
+  options: GetUserProviderOptions = {},
 ) {
   if (isTestEnvironment) {
     const { chatModel, reasoningModel, titleModel } = require("./models.mock");
@@ -122,6 +187,23 @@ export function getUserProvider(
     });
   }
 
+  if (provider === "custom") {
+    if (!options.baseUrl?.trim()) {
+      throw new Error("Custom provider base URL is required.");
+    }
+    if (!options.speedModelId?.trim() || !options.reasoningModelId?.trim()) {
+      throw new Error(
+        "Custom provider Speed and Reasoning models are required.",
+      );
+    }
+    return createOpenAICompatibleProvider({
+      apiKey,
+      baseUrl: options.baseUrl,
+      speedModelId: options.speedModelId,
+      reasoningModelId: options.reasoningModelId,
+    });
+  }
+
   if (provider === "anthropic") {
     if (!apiKey) {
       throw new Error(
@@ -129,7 +211,7 @@ export function getUserProvider(
       );
     }
 
-    return createAnthropicProvider(apiKey);
+    return createAnthropicProvider(apiKey, options);
   }
 
   if (provider === "openai") {
@@ -139,7 +221,7 @@ export function getUserProvider(
       );
     }
 
-    return createOpenAIProvider(apiKey);
+    return createOpenAIProvider(apiKey, options);
   }
 
   // Default to Google
@@ -149,5 +231,5 @@ export function getUserProvider(
     );
   }
 
-  return createGoogleProvider(apiKey);
+  return createGoogleProvider(apiKey, options);
 }

@@ -41,6 +41,7 @@ export function Chat({
   autoResume,
   initialLastContext,
   initialMaxIterationsReached = false,
+  initialAiProviderId = null,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -50,6 +51,7 @@ export function Chat({
   autoResume: boolean;
   initialLastContext?: AppUsage;
   initialMaxIterationsReached?: boolean;
+  initialAiProviderId?: string | null;
 }) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -65,13 +67,21 @@ export function Chat({
   const [maxIterationsReached, setMaxIterationsReached] = useState(
     initialMaxIterationsReached,
   );
+  const [aiProviderId, setAiProviderId] = useState<string | null>(
+    initialAiProviderId,
+  );
   const currentModelIdRef = useRef(currentModelId);
+  const aiProviderIdRef = useRef(aiProviderId);
   const errorOccurredRef = useRef(false);
 
   // Update refs when values change (these are used inside transport callbacks)
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  useEffect(() => {
+    aiProviderIdRef.current = aiProviderId;
+  }, [aiProviderId]);
 
   const visibilityTypeRef = useRef(visibilityType);
   useEffect(() => {
@@ -91,6 +101,7 @@ export function Chat({
               message: request.messages.at(-1),
               selectedChatModel: currentModelIdRef.current,
               selectedVisibilityType: visibilityTypeRef.current,
+              aiProviderId: aiProviderIdRef.current,
               ...request.body,
             },
           };
@@ -440,10 +451,12 @@ export function Chat({
           inputComponent={
             !isReadonly && messages.length === 0 ? (
               <MultimodalInput
+                aiProviderId={aiProviderId}
                 chatId={id}
                 disabled={maxIterationsReached}
                 input={input}
                 key={id}
+                onAiProviderChange={setAiProviderId}
                 onModelChange={setCurrentModelId}
                 selectedModelId={currentModelId}
                 selectedVisibilityType={visibilityType}
@@ -480,7 +493,7 @@ export function Chat({
         />
 
         {messages.length > 0 && (
-          <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-2xl flex-col gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
+          <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-3xl flex-col gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
             {maxIterationsReached && !isReadonly && (
               <Card className="w-full border-blue-500/50 bg-blue-500/10 dark:bg-blue-500/20">
                 <CardContent className="p-4">
@@ -568,9 +581,11 @@ export function Chat({
             )}
             {!isReadonly && (
               <MultimodalInput
+                aiProviderId={aiProviderId}
                 chatId={id}
                 disabled={maxIterationsReached}
                 input={input}
+                onAiProviderChange={setAiProviderId}
                 onModelChange={setCurrentModelId}
                 selectedModelId={currentModelId}
                 selectedVisibilityType={visibilityType}

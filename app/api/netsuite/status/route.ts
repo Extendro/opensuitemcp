@@ -6,7 +6,10 @@ import {
   resolveNetSuiteAccounts,
 } from "@/lib/netsuite/accounts";
 import { loadNetSuiteMCPTools } from "@/lib/netsuite/mcp";
-import { getNetSuiteToken } from "@/lib/netsuite/tokens";
+import {
+  getNetSuiteToken,
+  listConnectedNetSuiteAccountIds,
+} from "@/lib/netsuite/tokens";
 
 export async function GET() {
   const session = await auth();
@@ -21,14 +24,19 @@ export async function GET() {
     ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
     : (accounts[0]?.accountId ?? null);
 
-  const accessToken = await getNetSuiteToken(session.user.id);
-  const isConnected = !!accessToken;
+  const connectedAccountIds = await listConnectedNetSuiteAccountIds(
+    session.user.id,
+  );
+  const accessToken = activeAccountId
+    ? await getNetSuiteToken(session.user.id, activeAccountId)
+    : null;
+  const isConnected = Boolean(accessToken);
 
   let toolCount = 0;
   if (isConnected) {
     try {
-      const tools = await loadNetSuiteMCPTools(session.user.id);
-      toolCount = Object.keys(tools).length;
+      const loaded = await loadNetSuiteMCPTools(session.user.id);
+      toolCount = loaded.activeToolKeys.length;
     } catch (error) {
       console.error("[NetSuite Status] Error loading tools:", error);
     }
@@ -36,6 +44,7 @@ export async function GET() {
 
   return NextResponse.json({
     connected: isConnected,
+    connectedAccountIds,
     toolCount,
     activeAccountId,
     accounts,

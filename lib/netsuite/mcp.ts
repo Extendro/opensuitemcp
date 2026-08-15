@@ -2,15 +2,26 @@ import { randomUUID } from "node:crypto";
 import { tool } from "ai";
 import { z } from "zod";
 import { getUserSettings } from "@/lib/db/queries";
+import { getNetSuiteApiHost, normalizeNetSuiteAccountId } from "./accounts";
+import {
+  assertMcpToolCallAllowed,
+  isMcpToolAllowed,
+} from "./mcp-tool-settings";
 import { getNetSuiteToken } from "./tokens";
 
-async function getMCPBaseUrl(userId: string): Promise<string | null> {
+async function getMCPBaseUrl(
+  userId: string,
+  accountId?: string | null,
+): Promise<string | null> {
+  if (accountId?.trim()) {
+    return `${getNetSuiteApiHost(accountId)}/services/mcp/v1`;
+  }
   const settings = await getUserSettings({ userId });
   const NS_ACCOUNT_ID = settings?.netsuiteAccountId;
   if (!NS_ACCOUNT_ID) {
     return null;
   }
-  return `https://${NS_ACCOUNT_ID}.suitetalk.api.netsuite.com/services/mcp/v1`;
+  return `${getNetSuiteApiHost(NS_ACCOUNT_ID)}/services/mcp/v1`;
 }
 
 type JsonRpcRequest = {
@@ -88,8 +99,9 @@ async function mcpJsonRpc(params: {
   method: string;
   rpcParams?: unknown;
   timeoutMs?: number;
+  accountId?: string | null;
 }): Promise<unknown> {
-  const baseUrl = await getMCPBaseUrl(params.userId);
+  const baseUrl = await getMCPBaseUrl(params.userId, params.accountId);
   if (!baseUrl) {
     throw new Error(
       "NetSuite Account ID is not configured. Please set it in Settings.",
@@ -154,6 +166,7 @@ async function mcpJsonRpc(params: {
 export async function fetchMCPTools(
   userId: string,
   accessToken: string,
+  accountId?: string | null,
 ): Promise<MCPTool[]> {
   console.log("[NetSuite] Fetching tools via tools/list");
   const result = await mcpJsonRpc({
@@ -161,6 +174,7 @@ export async function fetchMCPTools(
     accessToken,
     method: "tools/list",
     rpcParams: {},
+    accountId,
   });
 
   let tools: MCPTool[] = [];
@@ -201,7 +215,20 @@ export async function executeMCPTool(params: {
   accessToken: string;
   toolName: string;
   toolParams: unknown;
+  accountId?: string | null;
 }): Promise<unknown> {
+  const settings = await getUserSettings({ userId: params.userId });
+  const rawAccountId =
+    params.accountId?.trim() || settings?.netsuiteAccountId?.trim() || "";
+  const accountId = rawAccountId
+    ? normalizeNetSuiteAccountId(rawAccountId)
+    : null;
+  assertMcpToolCallAllowed(
+    settings?.netsuiteMcpTools,
+    accountId,
+    params.toolName,
+  );
+
   console.log(
     `[NetSuite] Calling tool: ${params.toolName} with params:`,
     params.toolParams,
@@ -215,6 +242,7 @@ export async function executeMCPTool(params: {
       name: params.toolName,
       arguments: params.toolParams,
     },
+    accountId,
   });
 
   console.log(
@@ -231,6 +259,7 @@ export async function readMCPResource(params: {
   userId: string;
   accessToken: string;
   uri: string;
+  accountId?: string | null;
 }): Promise<{ contents: MCPResourceContents[] }> {
   console.log(`[NetSuite] Reading resource: ${params.uri}`);
   const result = await mcpJsonRpc({
@@ -239,6 +268,7 @@ export async function readMCPResource(params: {
     method: "resources/read",
     rpcParams: { uri: params.uri },
     timeoutMs: 45_000,
+    accountId: params.accountId,
   });
 
   if (!result || typeof result !== "object") {
@@ -309,7 +339,11 @@ function mcpSchemaToZod(
 /**
  * Create a dynamic tool from an MCP tool definition
  */
-export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
+export function createMCPTool(params: {
+  mcpTool: MCPTool;
+  userId: string;
+  accountId: string | null;
+}) {
   const zodSchema = mcpSchemaToZod(params.mcpTool.inputSchema);
   const uiResourceUri = getToolUiResourceUri(params.mcpTool);
 
@@ -317,7 +351,10 @@ export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
     description: params.mcpTool.description,
     inputSchema: zodSchema,
     execute: async (input: z.infer<typeof zodSchema>) => {
-      const accessToken = await getNetSuiteToken(params.userId);
+      const accessToken = await getNetSuiteToken(
+        params.userId,
+        params.accountId,
+      );
 
       if (!accessToken) {
         return {
@@ -333,6 +370,7 @@ export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
           accessToken,
           toolName: params.mcpTool.name,
           toolParams: input,
+          accountId: params.accountId,
         });
 
         console.log(
@@ -364,22 +402,37 @@ export function createMCPTool(params: { mcpTool: MCPTool; userId: string }) {
   });
 }
 
+export type LoadedNetSuiteMcpTools = {
+  tools: Record<string, unknown>;
+  activeToolKeys: string[];
+};
+
+const EMPTY_LOADED_MCP_TOOLS: LoadedNetSuiteMcpTools = {
+  tools: {},
+  activeToolKeys: [],
+};
+
 /**
- * Load and create all NetSuite MCP tools for a user
+ * Load and create all NetSuite MCP tools for a user.
+ * Disabled tools stay registered so invoke returns a clear error instead of 404.
  */
 export async function loadNetSuiteMCPTools(
   userId: string,
-): Promise<Record<string, unknown>> {
-  const accessToken = await getNetSuiteToken(userId);
+): Promise<LoadedNetSuiteMcpTools> {
+  const settings = await getUserSettings({ userId });
+  const accountId = settings?.netsuiteAccountId
+    ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+    : null;
+  const accessToken = await getNetSuiteToken(userId, accountId);
 
   if (!accessToken) {
     console.log("[NetSuite] No access token found for user:", userId);
-    return {};
+    return EMPTY_LOADED_MCP_TOOLS;
   }
 
   try {
     console.log("[NetSuite] Fetching MCP tools from NetSuite...");
-    const mcpTools = await fetchMCPTools(userId, accessToken);
+    const mcpTools = await fetchMCPTools(userId, accessToken, accountId);
 
     if (!Array.isArray(mcpTools)) {
       console.error(
@@ -387,22 +440,34 @@ export async function loadNetSuiteMCPTools(
         typeof mcpTools,
         mcpTools,
       );
-      return {};
+      return EMPTY_LOADED_MCP_TOOLS;
     }
 
     console.log(`[NetSuite] Received ${mcpTools.length} tools from NetSuite`);
 
     const tools: Record<string, unknown> = {};
+    const activeToolKeys: string[] = [];
 
     for (const mcpTool of mcpTools) {
       const toolKey = mcpTool.name.replace(/[^a-zA-Z0-9_]/g, "_");
       console.log(`[NetSuite] Creating tool: ${mcpTool.name} -> ${toolKey}`);
-      tools[toolKey] = createMCPTool({ mcpTool, userId });
+      tools[toolKey] = createMCPTool({
+        mcpTool,
+        userId,
+        accountId,
+      });
+      if (
+        isMcpToolAllowed(settings?.netsuiteMcpTools, accountId, mcpTool.name)
+      ) {
+        activeToolKeys.push(toolKey);
+      } else {
+        console.log(`[NetSuite] Tool registered but disabled: ${mcpTool.name}`);
+      }
     }
 
-    return tools;
+    return { tools, activeToolKeys };
   } catch (error) {
     console.error("[NetSuite] Error fetching/creating tools:", error);
-    return {};
+    return EMPTY_LOADED_MCP_TOOLS;
   }
 }

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
+import { getUserSettings } from "@/lib/db/queries";
+import { normalizeNetSuiteAccountId } from "@/lib/netsuite/accounts";
 import { executeMCPTool } from "@/lib/netsuite/mcp";
+import {
+  isMcpToolAllowed,
+  MCP_TOOL_DISABLED_MESSAGE,
+} from "@/lib/netsuite/mcp-tool-settings";
 import { getNetSuiteToken } from "@/lib/netsuite/tokens";
 
 const bodySchema = z.object({
@@ -12,6 +18,7 @@ const bodySchema = z.object({
 /**
  * POST /api/netsuite/mcp-call
  * Proxies tools/call for MCP App hosts running in the browser.
+ * Always uses the user's selected (active) NetSuite account.
  */
 export async function POST(request: Request) {
   const session = await auth();
@@ -19,8 +26,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const accessToken = await getNetSuiteToken(session.user.id);
-  if (!accessToken) {
+  const settings = await getUserSettings({ userId: session.user.id });
+  const accountId = settings?.netsuiteAccountId
+    ? normalizeNetSuiteAccountId(settings.netsuiteAccountId)
+    : null;
+  const accessToken = accountId
+    ? await getNetSuiteToken(session.user.id, accountId)
+    : null;
+  if (!(accountId && accessToken)) {
     return NextResponse.json(
       { error: "NetSuite not connected" },
       { status: 400 },
@@ -29,11 +42,22 @@ export async function POST(request: Request) {
 
   try {
     const parsed = bodySchema.parse(await request.json());
+    if (!isMcpToolAllowed(settings?.netsuiteMcpTools, accountId, parsed.name)) {
+      return NextResponse.json(
+        {
+          error: MCP_TOOL_DISABLED_MESSAGE,
+          isError: true,
+          content: [{ type: "text", text: MCP_TOOL_DISABLED_MESSAGE }],
+        },
+        { status: 403 },
+      );
+    }
     const result = await executeMCPTool({
       userId: session.user.id,
       accessToken,
       toolName: parsed.name,
       toolParams: parsed.arguments,
+      accountId,
     });
 
     // Log a compact shape so we can debug empty MCP Apps (e.g. prompt library).

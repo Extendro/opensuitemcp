@@ -13,13 +13,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import { chatModels } from "@/lib/ai/models";
+import {
+  entryUsesModelOverrides,
+  findProviderById,
+  isMultiAiProviders,
+  parseAiProviderConfig,
+} from "@/lib/ai/provider-entries";
 import { cn } from "@/lib/utils";
 import { CheckCircleFillIcon, ChevronDownIcon } from "./icons";
 
 async function fetchSettings() {
   const response = await fetch("/api/settings");
   if (!response.ok) {
-    return { aiProvider: "google" as const };
+    return { aiProvider: "google" as const, aiProviders: null };
   }
   const data = await response.json();
   return {
@@ -27,6 +33,7 @@ async function fetchSettings() {
       | "google"
       | "anthropic"
       | "openai",
+    aiProviders: data.aiProviders ?? null,
   };
 }
 
@@ -44,19 +51,43 @@ export function ModelSelector({
 
   // Fetch user's provider setting
   const { data: settings } = useSWR("settings", fetchSettings, {
-    fallbackData: { aiProvider: "google" as const },
+    fallbackData: { aiProvider: "google" as const, aiProviders: null },
   });
 
   const userType = session.user.type;
   const { availableChatModelIds } = entitlementsByUserType[userType];
+  const providerConfig = parseAiProviderConfig(settings?.aiProviders);
+  const activeEntry = isMultiAiProviders(providerConfig)
+    ? (findProviderById(providerConfig, providerConfig.defaultId) ??
+      providerConfig.providers[0])
+    : undefined;
+  const providerType = activeEntry?.type || settings?.aiProvider || "google";
 
   // Filter models by both entitlements AND provider
-  const availableChatModels = chatModels.filter((chatModel) => {
-    const matchesEntitlements = availableChatModelIds.includes(chatModel.id);
-    const matchesProvider =
-      !chatModel.provider || chatModel.provider === settings?.aiProvider;
-    return matchesEntitlements && matchesProvider;
-  });
+  const availableChatModels =
+    activeEntry && entryUsesModelOverrides(activeEntry)
+      ? [
+          {
+            id: "chat-model",
+            name: activeEntry.speedModelId || "Speed",
+            description: "Speed mode",
+            provider: undefined,
+          },
+          {
+            id: "chat-model-reasoning",
+            name: activeEntry.reasoningModelId || "Reasoning",
+            description: "Reasoning mode",
+            provider: undefined,
+          },
+        ].filter((chatModel) => availableChatModelIds.includes(chatModel.id))
+      : chatModels.filter((chatModel) => {
+          const matchesEntitlements = availableChatModelIds.includes(
+            chatModel.id,
+          );
+          const matchesProvider =
+            !chatModel.provider || chatModel.provider === providerType;
+          return matchesEntitlements && matchesProvider;
+        });
 
   const selectedChatModel = useMemo(
     () =>
@@ -86,7 +117,7 @@ export function ModelSelector({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="min-w-[280px] max-w-[90vw] sm:min-w-[300px]"
+        className="min-w-70 max-w-[90vw] sm:min-w-75"
       >
         {availableChatModels.map((chatModel) => {
           const { id } = chatModel;

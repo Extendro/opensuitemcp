@@ -3,7 +3,7 @@
 import { MessageSquare, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { User } from "next-auth";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import {
@@ -68,26 +68,6 @@ export function AppPortal({ user }: { user: User | undefined }) {
   const { open, section, openPortal, closePortal, setSection, onSelectPrompt } =
     useAppPortal();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
-  const chatsListRef = useRef<HTMLDivElement>(null);
-
-  // Close the portal when a chat link is chosen (listener avoids a11y click-on-div).
-  useEffect(() => {
-    if (!(open && section === "chats")) {
-      return;
-    }
-    const el = chatsListRef.current;
-    if (!el) {
-      return;
-    }
-    const onClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('a[href^="/chat/"]')) {
-        closePortal();
-      }
-    };
-    el.addEventListener("click", onClick);
-    return () => el.removeEventListener("click", onClick);
-  }, [open, section, closePortal]);
 
   const visibleNav = PORTAL_NAV.filter((item) => {
     if (item.id === "account" && !user) {
@@ -128,7 +108,13 @@ export function AppPortal({ user }: { user: User | undefined }) {
       >
         <DialogContent
           className="flex h-[min(85vh,42rem)] w-[calc(100vw-1.5rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
+          onInteractOutside={(event) => {
+            event.preventDefault();
+          }}
           onOpenAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
             event.preventDefault();
           }}
         >
@@ -216,10 +202,7 @@ export function AppPortal({ user }: { user: User | undefined }) {
                       </button>
                     ) : null}
                   </div>
-                  <div
-                    className="min-h-0 flex-1 overflow-y-auto"
-                    ref={chatsListRef}
-                  >
+                  <div className="min-h-0 flex-1 overflow-y-auto">
                     <SidebarHistory user={user} />
                   </div>
                 </div>
