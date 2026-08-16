@@ -1,9 +1,8 @@
 "use client";
 
 import type { Session } from "next-auth";
-import { startTransition, useMemo, useOptimistic, useState } from "react";
+import { useMemo, useOptimistic, useState } from "react";
 import useSWR from "swr";
-import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  isComposerChatModelId,
+  persistComposerPreferences,
+} from "@/lib/ai/composer-preferences";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import { chatModels } from "@/lib/ai/models";
 import {
@@ -130,11 +133,10 @@ export function ModelSelector({
               key={id}
               onSelect={() => {
                 setOpen(false);
-
-                startTransition(() => {
-                  setOptimisticModelId(id);
-                  saveChatModelAsCookie(id);
-                });
+                setOptimisticModelId(id);
+                if (isComposerChatModelId(id)) {
+                  persistComposerPreferences({ selectedChatModel: id });
+                }
               }}
             >
               <button

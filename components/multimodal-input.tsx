@@ -56,6 +56,7 @@ function PureMultimodalInput({
   onAiProviderChange,
   usage,
   disabled = false,
+  followSettingsDefault = false,
 }: {
   chatId: string;
   input: string;
@@ -72,6 +73,7 @@ function PureMultimodalInput({
   onAiProviderChange?: (id: string | null) => void;
   usage?: AppUsage;
   disabled?: boolean;
+  followSettingsDefault?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -257,6 +259,7 @@ function PureMultimodalInput({
             <ComposerModelMenu
               aiProviderId={aiProviderId}
               chatId={chatId}
+              followSettingsDefault={followSettingsDefault}
               onAiProviderChange={onAiProviderChange}
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
@@ -333,6 +336,9 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.aiProviderId !== nextProps.aiProviderId) {
+      return false;
+    }
+    if (prevProps.followSettingsDefault !== nextProps.followSettingsDefault) {
       return false;
     }
     if (prevProps.disabled !== nextProps.disabled) {
