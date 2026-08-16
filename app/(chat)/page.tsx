@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Chat } from "@/components/chat";
+import { CHAT_MODEL_COOKIE } from "@/lib/ai/composer-preferences";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import {
   parseAiProviderConfig,
@@ -19,7 +20,7 @@ export default async function Page() {
 
   const id = generateUUID();
   const cookieStore = await cookies();
-  const modelIdFromCookie = cookieStore.get("chat-model");
+  const modelIdFromCookie = cookieStore.get(CHAT_MODEL_COOKIE);
   const settings = session.user?.id
     ? await getUserSettings({ userId: session.user.id })
     : null;

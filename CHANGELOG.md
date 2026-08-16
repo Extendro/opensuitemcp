@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.0.2] - 2026-08-15
+
+### 🐛 Fixed
+
+- **Composer provider + mode** — switching Speed/Reasoning no longer refreshes the page and snaps back to the previous AI provider; the Settings default radio applies to new/empty chats
+
+---
+
 ## [4.0.1] - 2026-08-15
 
 ### Changed

@@ -454,6 +454,7 @@ export function Chat({
                 aiProviderId={aiProviderId}
                 chatId={id}
                 disabled={maxIterationsReached}
+                followSettingsDefault
                 input={input}
                 key={id}
                 onAiProviderChange={setAiProviderId}

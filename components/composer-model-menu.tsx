@@ -1,8 +1,7 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +14,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  type ComposerChatModelId,
+  persistComposerPreferences,
+} from "@/lib/ai/composer-preferences";
 import { REGISTERED_MODELS } from "@/lib/ai/model-registry";
 import {
   type AiProviderConfig,
@@ -29,6 +32,7 @@ import {
   parseAiProviderConfig,
   providerSelectorSubtitle,
   providerTypeLabel,
+  resolveDefaultProviderId,
 } from "@/lib/ai/provider-entries";
 import {
   BrainIcon,
@@ -112,17 +116,20 @@ export function ComposerModelMenu({
   onAiProviderChange,
   selectedModelId,
   onModelChange,
+  followSettingsDefault = false,
 }: {
   chatId: string;
   aiProviderId: string | null;
   onAiProviderChange?: (id: string | null) => void;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
+  followSettingsDefault?: boolean;
 }) {
   const { mutate } = useSWRConfig();
   const { data: settings } = useSWR("settings", fetchSettings);
   const [open, setOpen] = useState(false);
   const [optimisticModelId, setOptimisticModelId] = useState(selectedModelId);
+  const [pinnedToChat, setPinnedToChat] = useState(false);
 
   useEffect(() => {
     setOptimisticModelId(selectedModelId);
@@ -133,6 +140,7 @@ export function ComposerModelMenu({
     [settings?.aiProviders],
   );
   const hostedType = fallbackHostedType(settings?.aiProvider);
+  const settingsDefaultId = resolveDefaultProviderId(config);
   const selectedEntry = isMultiAiProviders(config)
     ? findUsableChatProvider(config, aiProviderId)
     : undefined;
@@ -145,7 +153,23 @@ export function ComposerModelMenu({
       isProviderEntryConfigured(entry) && entry.id !== selectedEntry?.id,
   );
 
-  const handleModelChange = (newModelId: string) => {
+  useEffect(() => {
+    if (!followSettingsDefault || pinnedToChat || !settingsDefaultId) {
+      return;
+    }
+    if (aiProviderId === settingsDefaultId) {
+      return;
+    }
+    onAiProviderChange?.(settingsDefaultId);
+  }, [
+    followSettingsDefault,
+    pinnedToChat,
+    settingsDefaultId,
+    aiProviderId,
+    onAiProviderChange,
+  ]);
+
+  const handleModelChange = (newModelId: ComposerChatModelId) => {
     const option = options.find((item) => item.id === newModelId);
     toast({
       type: "success",
@@ -153,8 +177,8 @@ export function ComposerModelMenu({
     });
     setOptimisticModelId(newModelId);
     onModelChange?.(newModelId);
-    startTransition(() => {
-      saveChatModelAsCookie(newModelId);
+    persistComposerPreferences({
+      selectedChatModel: newModelId,
     });
   };
 
@@ -164,6 +188,7 @@ export function ComposerModelMenu({
       return;
     }
     onAiProviderChange?.(id);
+    setPinnedToChat(true);
     try {
       const response = await fetch(`/api/chat/${chatId}/ai-provider`, {
         method: "POST",
