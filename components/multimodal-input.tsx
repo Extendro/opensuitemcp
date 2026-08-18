@@ -74,7 +74,6 @@ async function fetchConnectedSlashSkills(): Promise<SlashConnectedSkill[]> {
       connectionLabel: skill.connectionLabel ?? "Connected",
     }));
 }
-
 function PureMultimodalInput({
   chatId,
   input,
@@ -92,6 +91,10 @@ function PureMultimodalInput({
   usage,
   disabled = false,
   followSettingsDefault = false,
+  personaName,
+  isPersonaBuilder = false,
+  onSavePersona,
+  onCancelInterview,
 }: {
   chatId: string;
   input: string;
@@ -109,18 +112,23 @@ function PureMultimodalInput({
   usage?: AppUsage;
   disabled?: boolean;
   followSettingsDefault?: boolean;
+  personaName?: string;
+  isPersonaBuilder?: boolean;
+  onSavePersona?: () => void;
+  onCancelInterview?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const [mounted, setMounted] = useState(false);
   const { openPortal, registerPromptHandler } = useAppPortal();
+  /** Disambiguates duplicate slugs across connected packs after a menu pick. */
   const [preferredSkillIdsBySlug, setPreferredSkillIdsBySlug] = useState<
     Record<string, string>
   >({});
   const [slashActiveIndex, setSlashActiveIndex] = useState(0);
 
   const { data: connectedSkills = [] } = useSWR(
-    mounted && !disabled ? "connected-slash-skills" : null,
+    mounted && !disabled && !isPersonaBuilder ? "connected-slash-skills" : null,
     fetchConnectedSlashSkills,
     { revalidateOnFocus: true },
   );
@@ -280,7 +288,17 @@ function PureMultimodalInput({
     if (mounted && width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [input, setInput, sendMessage, width, chatId, resetHeight, mounted, preferredSkillIdsBySlug, connectedSkills]);
+  }, [
+    input,
+    setInput,
+    sendMessage,
+    width,
+    chatId,
+    resetHeight,
+    mounted,
+    preferredSkillIdsBySlug,
+    connectedSkills,
+  ]);
 
   const _modelResolver = useMemo(() => {
     return myProvider.languageModel(selectedModelId);
@@ -344,13 +362,8 @@ function PureMultimodalInput({
         className="rounded-3xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
         onSubmit={(event) => {
           event.preventDefault();
-          // Only block if actively streaming - allow ready, error, and submitted states
-          // (submitted after an error means the stream stopped but status hasn't reset yet)
-          if (status === "streaming") {
-            toast({
-              type: "error",
-              description: "Please wait for the model to finish its response!",
-            });
+          // Stop is a separate control while submitted/streaming; ignore Enter/submit then.
+          if (status === "streaming" || status === "submitted") {
             return;
           }
           if (
@@ -401,7 +414,13 @@ function PureMultimodalInput({
                 }
               }
             }}
-            placeholder="Ask Ava anything…"
+            placeholder={
+              disabled && !personaName
+                ? "Choose a persona to continue…"
+                : personaName
+                  ? `Ask ${personaName} anything…`
+                  : "Ask Ava anything…"
+            }
             ref={(node) => {
               (
                 textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>
@@ -411,9 +430,29 @@ function PureMultimodalInput({
             value={input}
           />{" "}
           <Context {...contextProps} />
-        </div>
+        </div>{" "}
         <PromptInputToolbar className="border-top-0! border-t-0! p-0 shadow-none dark:border-0 dark:border-transparent!">
           <PromptInputTools className="gap-0 sm:gap-0.5">
+            {isPersonaBuilder ? (
+              <>
+                <Button
+                  className="h-8 px-2 text-xs"
+                  onClick={onSavePersona}
+                  type="button"
+                  variant="default"
+                >
+                  Save persona
+                </Button>
+                <Button
+                  className="h-8 px-2 text-xs"
+                  onClick={onCancelInterview}
+                  type="button"
+                  variant="ghost"
+                >
+                  Cancel interview
+                </Button>
+              </>
+            ) : null}
             <ComposerModelMenu
               aiProviderId={aiProviderId}
               chatId={chatId}
@@ -459,7 +498,7 @@ function PureMultimodalInput({
             {(status === "submitted" || status === "streaming") && (
               <Spinner className="text-muted-foreground" />
             )}
-            {status === "submitted" ? (
+            {status === "submitted" || status === "streaming" ? (
               <StopButton setMessages={setMessages} stop={stop} />
             ) : (
               <PromptInputSubmit
@@ -500,6 +539,12 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.disabled !== nextProps.disabled) {
+      return false;
+    }
+    if (prevProps.personaName !== nextProps.personaName) {
+      return false;
+    }
+    if (prevProps.isPersonaBuilder !== nextProps.isPersonaBuilder) {
       return false;
     }
 

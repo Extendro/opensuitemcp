@@ -4,8 +4,8 @@ import { formatISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 import type { DBMessage } from '@/lib/db/schema';
 import { ChatSDKError, type ErrorCode } from './errors';
-import { stripResolvedSkillTokens } from './ai/skills/slash-tokens';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
+import { stripResolvedSkillTokens } from './ai/skills/slash-tokens';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -131,7 +131,10 @@ export function prepareMessagesForModel(
         ).trim();
         return {
           type: "text" as const,
-          text: stripped || options?.fallbackText || part.text,
+          text:
+            stripped ||
+            options?.fallbackText ||
+            part.text,
         };
       }),
   }));
