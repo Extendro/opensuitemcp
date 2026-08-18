@@ -11,6 +11,7 @@ import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { McpAppHost, type McpAppLaunch } from "./mcp-app-host";
+import { UserMessageTextWithSkillBadges } from "./user-message-text-with-skill-badges";
 import { MessageActions } from "./message-actions";
 import { MessageEditor } from "./message-editor";
 import { MessageContent } from "./message-elements/message";
@@ -143,6 +144,10 @@ const PurePreviewMessage = ({
             const { type } = part;
             const key = `message-${message.id}-part-${index}`;
 
+            if (type === "data-invokedConnectedSkills") {
+              return null;
+            }
+
             if (type === "reasoning" && part.text?.trim().length > 0) {
               // Find all reasoning parts to determine if this is the last one
               const reasoningParts =
@@ -248,6 +253,17 @@ const PurePreviewMessage = ({
               // Regular text rendering
               if (mode === "view") {
                 if (message.role === "user") {
+                  const invokedSlugs = new Set(
+                    (message.parts ?? []).flatMap((messagePart) => {
+                      if (messagePart.type !== "data-invokedConnectedSkills") {
+                        return [];
+                      }
+                      return messagePart.data.map((skill) =>
+                        skill.slug.toLowerCase(),
+                      );
+                    }),
+                  );
+
                   return (
                     <Card
                       className="w-full rounded-tl-3xl rounded-tr rounded-br-3xl rounded-bl-3xl bg-sidebar text-sidebar-foreground shadow-none"
@@ -258,9 +274,10 @@ const PurePreviewMessage = ({
                           className="wrap-break-word text-left"
                           data-testid="message-content"
                         >
-                          <div className="whitespace-pre-wrap">
-                            {sanitizeText(part.text)}
-                          </div>
+                          <UserMessageTextWithSkillBadges
+                            invokedSlugs={invokedSlugs}
+                            text={part.text}
+                          />
                         </MessageContent>
                       </CardContent>
                     </Card>

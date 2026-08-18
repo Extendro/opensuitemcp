@@ -24,6 +24,7 @@ import { resolveUserChatProvider } from "@/lib/ai/resolve-user-chat-provider";
 import { searchDomains } from "@/lib/ai/search-domains";
 import {
   buildSkillsPromptSection,
+  listConnectedCatalogSkills,
   listEnabledSkillNames,
   normalizeUserSkillSettings,
 } from "@/lib/ai/skills/catalog";
@@ -49,7 +50,7 @@ import { loadNetSuiteMCPTools } from "@/lib/netsuite/mcp";
 import { allowChatBurst } from "@/lib/rate-limit";
 import type { ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
-import { convertToUIMessages, generateUUID } from "@/lib/utils";
+import { convertToUIMessages, generateUUID, prepareMessagesForModel } from "@/lib/utils";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
 export const maxDuration = 60;
@@ -89,12 +90,14 @@ export async function POST(request: Request) {
       selectedChatModel,
       selectedVisibilityType,
       aiProviderId,
+      invokedConnectedSkillIds: requestInvokedConnectedSkillIds,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel["id"];
       selectedVisibilityType: VisibilityType;
       aiProviderId?: string | null;
+      invokedConnectedSkillIds?: string[];
     } = requestBody;
 
     const session = await auth();
@@ -226,6 +229,8 @@ export async function POST(request: Request) {
           let customSpeedModelId: string | undefined;
           let customReasoningModelId: string | undefined;
           let userProviderLabel: string | null = null;
+          let invokedConnectedSkillSlugs = new Set<string>();
+          let invokedSkillFallbackText: string | undefined;
           if (session.user?.id) {
             try {
               const settings = await getUserSettings({
@@ -269,17 +274,50 @@ export async function POST(request: Request) {
                   {
                     enabledSkillIds: settings.enabledSkillIds ?? [],
                     customSkills: settings.customSkills ?? [],
+                    connectedSkillSources: settings.connectedSkillSources ?? [],
                   },
                   settings.customInstructions,
                 );
-                skillsPromptSection = buildSkillsPromptSection(skillSettings);
-                enabledSkillNames = listEnabledSkillNames(skillSettings);
+                const invokedConnectedSkillIds = (
+                  requestInvokedConnectedSkillIds ?? []
+                ).filter(
+                  (skillId) =>
+                    typeof skillId === "string" &&
+                    skillId.startsWith("connected:") &&
+                    skillSettings.connectedSkillSources.some((source) =>
+                      skillId.startsWith(`connected:${source.id}:`),
+                    ),
+                );
+                const invokedConnectedSkills = listConnectedCatalogSkills(
+                  session.user.id,
+                  skillSettings.connectedSkillSources,
+                ).filter((skill) => invokedConnectedSkillIds.includes(skill.id));
+                invokedConnectedSkillSlugs = new Set(
+                  invokedConnectedSkills
+                    .map((skill) => skill.slug?.toLowerCase() ?? "")
+                    .filter(Boolean),
+                );
+                if (invokedConnectedSkills.length > 0) {
+                  const fallbackNames = invokedConnectedSkills
+                    .map((skill) => skill.name)
+                    .join(", ");
+                  invokedSkillFallbackText = `Use the ${fallbackNames} skill${invokedConnectedSkills.length === 1 ? "" : "s"}.`;
+                }
+                skillsPromptSection = buildSkillsPromptSection(skillSettings, {
+                  invokedConnectedSkillIds,
+                  userId: session.user.id,
+                });
+                enabledSkillNames = listEnabledSkillNames(skillSettings, {
+                  invokedConnectedSkillIds,
+                  userId: session.user.id,
+                });
                 console.log("[Skills] Session skills:", {
                   enabledIds: skillSettings.enabledSkillIds,
                   enabledNames: enabledSkillNames,
                   customCount: skillSettings.customSkills.filter(
                     (skill) => skill.enabled !== false,
                   ).length,
+                  invokedConnectedSkillIds,
                   injectedChars: skillsPromptSection.length,
                 });
               } else {
@@ -473,7 +511,12 @@ export async function POST(request: Request) {
           let result: any;
           try {
             // AI SDK 6: convertToModelMessages is now async
-            const modelMessages = await convertToModelMessages(uiMessages);
+            const modelMessages = await convertToModelMessages(
+              prepareMessagesForModel(uiMessages, {
+                invokedSkillSlugs: invokedConnectedSkillSlugs,
+                fallbackText: invokedSkillFallbackText,
+              }),
+            );
             result = streamText({
               model: languageModel,
               system: systemPromptText,

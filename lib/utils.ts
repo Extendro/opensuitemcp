@@ -4,6 +4,7 @@ import { formatISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 import type { DBMessage } from '@/lib/db/schema';
 import { ChatSDKError, type ErrorCode } from './errors';
+import { stripResolvedSkillTokens } from './ai/skills/slash-tokens';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 
 export function cn(...inputs: ClassValue[]) {
@@ -95,4 +96,43 @@ export function getTextFromMessage(message: ChatMessage | UIMessage): string {
     .filter((part) => part.type === 'text')
     .map((part) => (part as { type: 'text'; text: string}).text)
     .join('');
+}
+
+/** Prepare chat history for the model: drop UI-only parts and strip slash tokens. */
+export function prepareMessagesForModel(
+  messages: ChatMessage[],
+  options?: {
+    invokedSkillSlugs?: Set<string>;
+    fallbackText?: string;
+  },
+): ChatMessage[] {
+  const invokedSkillSlugs = options?.invokedSkillSlugs ?? new Set<string>();
+  const lastUserIndex = messages.findLastIndex(
+    (message) => message.role === "user",
+  );
+
+  return messages.map((message, index) => ({
+    ...message,
+    parts: message.parts
+      .filter((part) => part.type !== "data-invokedConnectedSkills")
+      .map((part) => {
+        if (
+          part.type !== "text" ||
+          message.role !== "user" ||
+          index !== lastUserIndex ||
+          invokedSkillSlugs.size === 0
+        ) {
+          return part;
+        }
+
+        const stripped = stripResolvedSkillTokens(
+          part.text,
+          invokedSkillSlugs,
+        ).trim();
+        return {
+          type: "text" as const,
+          text: stripped || options?.fallbackText || part.text,
+        };
+      }),
+  }));
 }

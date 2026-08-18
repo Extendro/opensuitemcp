@@ -13,7 +13,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import type { AiProviderConfig } from "../ai/provider-entries";
-import type { CustomSkill } from "../ai/skills/catalog";
+import type { ConnectedSkillSource, CustomSkill } from "../ai/skills/catalog";
 import type { NetsuiteMcpToolSettings } from "../netsuite/mcp-tool-settings";
 import type { AppUsage } from "../usage";
 
@@ -165,6 +165,11 @@ export const userSettings = pgTable("UserSettings", {
     .default(sql`'[]'::jsonb`),
   customSkills: jsonb("customSkills")
     .$type<CustomSkill[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  /** User-connected public GitHub skill packs (slash-invoked) */
+  connectedSkillSources: jsonb("connectedSkillSources")
+    .$type<ConnectedSkillSource[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
   createdAt: timestamp("createdAt").notNull(),

@@ -120,6 +120,7 @@ function resolveSkillSettings(
       ? {
           enabledSkillIds: settings.enabledSkillIds ?? [],
           customSkills: settings.customSkills ?? [],
+          connectedSkillSources: settings.connectedSkillSources ?? [],
         }
       : null,
     settings?.customInstructions,

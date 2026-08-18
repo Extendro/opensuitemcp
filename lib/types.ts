@@ -30,6 +30,11 @@ export type ChatTools = {
 export type CustomUIDataTypes = {
   appendMessage: string;
   usage: AppUsage;
+  invokedConnectedSkills: Array<{
+    id: string;
+    slug: string;
+    name: string;
+  }>;
 };
 
 export type ChatMessage = UIMessage<

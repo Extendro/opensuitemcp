@@ -12,8 +12,18 @@ import {
   useRef,
   useState,
 } from "react";
+import useSWR from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { ComposerModelMenu } from "@/components/composer-model-menu";
+import {
+  ConnectedSkillSlashMenu,
+  filterSlashSkills,
+  insertSlashSkillToken,
+  parseTrailingSlashQuery,
+  resolveSlashSkillsInText,
+  type SlashConnectedSkill,
+  shouldPickSlashSkillOnSubmit,
+} from "@/components/connected-skill-slash-menu";
 import { NetSuiteAccountSwitcher } from "@/components/netsuite-account-switcher";
 import { useAppPortal } from "@/components/portal/context";
 import { myProvider } from "@/lib/ai/providers";
@@ -39,6 +49,31 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import type { VisibilityType } from "./visibility-selector";
+
+async function fetchConnectedSlashSkills(): Promise<SlashConnectedSkill[]> {
+  const response = await fetch("/api/skills");
+  if (!response.ok) {
+    return [];
+  }
+  const payload = (await response.json()) as {
+    connectedSkills?: Array<{
+      id: string;
+      name: string;
+      description: string;
+      slug?: string;
+      connectionLabel?: string;
+    }>;
+  };
+  return (payload.connectedSkills ?? [])
+    .filter((skill) => typeof skill.slug === "string" && skill.slug.length > 0)
+    .map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      slug: skill.slug as string,
+      connectionLabel: skill.connectionLabel ?? "Connected",
+    }));
+}
 
 function PureMultimodalInput({
   chatId,
@@ -79,6 +114,40 @@ function PureMultimodalInput({
   const { width } = useWindowSize();
   const [mounted, setMounted] = useState(false);
   const { openPortal, registerPromptHandler } = useAppPortal();
+  const [preferredSkillIdsBySlug, setPreferredSkillIdsBySlug] = useState<
+    Record<string, string>
+  >({});
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+
+  const { data: connectedSkills = [] } = useSWR(
+    mounted && !disabled ? "connected-slash-skills" : null,
+    fetchConnectedSlashSkills,
+    { revalidateOnFocus: true },
+  );
+
+  const slashQuery = useMemo(() => parseTrailingSlashQuery(input), [input]);
+
+  const slashFiltered = useMemo(
+    () =>
+      slashQuery ? filterSlashSkills(connectedSkills, slashQuery.query) : [],
+    [connectedSkills, slashQuery],
+  );
+
+  const selectSlashSkill = useCallback(
+    (skill: SlashConnectedSkill) => {
+      if (!slashQuery) {
+        return;
+      }
+      setPreferredSkillIdsBySlug((current) => ({
+        ...current,
+        [skill.slug.toLowerCase()]: skill.id,
+      }));
+      setInput(insertSlashSkillToken(input, slashQuery.start, skill));
+      setSlashActiveIndex(0);
+      textareaRef.current?.focus();
+    },
+    [input, setInput, slashQuery],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -136,23 +205,68 @@ function PureMultimodalInput({
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
+    setSlashActiveIndex(0);
   };
 
   const submitForm = useCallback(() => {
     window.history.pushState({}, "", `/chat/${chatId}`);
 
-    sendMessage({
-      role: "user",
-      parts: [
-        {
-          type: "text",
-          text: input,
-        },
-      ],
-    });
+    const resolved = resolveSlashSkillsInText(
+      input,
+      connectedSkills,
+      preferredSkillIdsBySlug,
+    );
+    if (!resolved.ok) {
+      toast({
+        type: "error",
+        description: `Multiple skills share /${resolved.slug} — pick one from the / menu.`,
+      });
+      return;
+    }
+
+    const invokedSkills = resolved.skills;
+    const displayText = input.trim();
+    if (!displayText && invokedSkills.length === 0) {
+      return;
+    }
+
+    const fallbackNames = invokedSkills.map((skill) => skill.name).join(", ");
+    sendMessage(
+      {
+        role: "user",
+        parts: [
+          ...(invokedSkills.length > 0
+            ? [
+                {
+                  type: "data-invokedConnectedSkills" as const,
+                  data: invokedSkills.map((skill) => ({
+                    id: skill.id,
+                    slug: skill.slug,
+                    name: skill.name,
+                  })),
+                },
+              ]
+            : []),
+          {
+            type: "text",
+            text:
+              displayText ||
+              `Use the ${fallbackNames || "connected"} skill${invokedSkills.length === 1 ? "" : "s"}.`,
+          },
+        ],
+      },
+      invokedSkills.length > 0
+        ? {
+            body: {
+              invokedConnectedSkillIds: invokedSkills.map((skill) => skill.id),
+            },
+          }
+        : undefined,
+    );
 
     resetHeight();
     setInput("");
+    setPreferredSkillIdsBySlug({});
 
     // Clear localStorage after clearing input
     if (mounted) {
@@ -166,7 +280,7 @@ function PureMultimodalInput({
     if (mounted && width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [input, setInput, sendMessage, width, chatId, resetHeight, mounted]);
+  }, [input, setInput, sendMessage, width, chatId, resetHeight, mounted, preferredSkillIdsBySlug, connectedSkills]);
 
   const _modelResolver = useMemo(() => {
     return myProvider.languageModel(selectedModelId);
@@ -217,6 +331,15 @@ function PureMultimodalInput({
 
   return (
     <div className={cn("relative flex w-full flex-col gap-4", className)}>
+      {slashQuery ? (
+        <ConnectedSkillSlashMenu
+          activeIndex={slashActiveIndex}
+          onHoverIndex={setSlashActiveIndex}
+          onSelect={selectSlashSkill}
+          query={slashQuery.query}
+          skills={connectedSkills}
+        />
+      ) : null}
       <PromptInput
         className="rounded-3xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
         onSubmit={(event) => {
@@ -228,9 +351,20 @@ function PureMultimodalInput({
               type: "error",
               description: "Please wait for the model to finish its response!",
             });
-          } else {
-            submitForm();
+            return;
           }
+          if (
+            slashQuery &&
+            shouldPickSlashSkillOnSubmit(slashQuery.query, slashFiltered)
+          ) {
+            const pick =
+              slashFiltered.at(slashActiveIndex) ?? slashFiltered.at(0);
+            if (pick) {
+              selectSlashSkill(pick);
+              return;
+            }
+          }
+          submitForm();
         }}
       >
         <div className="flex flex-row items-start gap-1 sm:gap-2">
@@ -243,6 +377,30 @@ function PureMultimodalInput({
             maxHeight={200}
             minHeight={44}
             onChange={handleInput}
+            onKeyDown={(event) => {
+              if (!slashQuery || slashFiltered.length === 0) {
+                return;
+              }
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setSlashActiveIndex(
+                  (index) => (index + 1) % slashFiltered.length,
+                );
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setSlashActiveIndex(
+                  (index) =>
+                    (index - 1 + slashFiltered.length) % slashFiltered.length,
+                );
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                if (slashQuery.start >= 0) {
+                  setInput(
+                    input.slice(0, slashQuery.start).replace(/\s+$/, ""),
+                  );
+                }
+              }
+            }}
             placeholder="Ask Ava anything…"
             ref={(node) => {
               (

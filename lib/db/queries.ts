@@ -16,7 +16,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import type { VisibilityType } from "@/components/visibility-selector";
 import type { AiProviderConfig } from "../ai/provider-entries";
-import type { CustomSkill } from "../ai/skills/catalog";
+import type { ConnectedSkillSource, CustomSkill } from "../ai/skills/catalog";
 import { ChatSDKError } from "../errors";
 import type { NetsuiteMcpToolSettings } from "../netsuite/mcp-tool-settings";
 import type { AppUsage } from "../usage";
@@ -593,6 +593,7 @@ export async function upsertUserSettings({
   customInstructions,
   enabledSkillIds,
   customSkills,
+  connectedSkillSources,
   aiProviders,
   netsuiteMcpTools,
 }: {
@@ -617,6 +618,7 @@ export async function upsertUserSettings({
   customInstructions?: string | null;
   enabledSkillIds?: string[] | null;
   customSkills?: CustomSkill[] | null;
+  connectedSkillSources?: ConnectedSkillSource[] | null;
   aiProviders?: AiProviderConfig | null;
   netsuiteMcpTools?: NetsuiteMcpToolSettings | null;
 }): Promise<UserSettings> {
@@ -682,6 +684,10 @@ export async function upsertUserSettings({
             customSkills !== undefined
               ? (customSkills ?? [])
               : (existing.customSkills ?? []),
+          connectedSkillSources:
+            connectedSkillSources !== undefined
+              ? (connectedSkillSources ?? [])
+              : (existing.connectedSkillSources ?? []),
           aiProviders:
             aiProviders !== undefined
               ? (aiProviders ?? {
@@ -723,6 +729,7 @@ export async function upsertUserSettings({
         customInstructions: customInstructions ?? null,
         enabledSkillIds: enabledSkillIds ?? [],
         customSkills: customSkills ?? [],
+        connectedSkillSources: connectedSkillSources ?? [],
         aiProviders: aiProviders ?? {
           defaultId: null,
           providers: [],
